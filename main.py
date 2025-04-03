@@ -47,6 +47,10 @@ def categorize_urls(urls):
             
         elif ".m3u8" in url:
             videos.append((name, url))
+
+        elif ".mp4" in url:
+            videos.append((name, url))
+            
         elif "pdf" in url:
             pdfs.append((name, url))
         else:
