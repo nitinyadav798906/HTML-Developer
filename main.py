@@ -426,7 +426,7 @@ def generate_html(file_name, videos, pdfs, others):
 
 # Function to download video using FFmpeg
 def download_video(url, output_path):
-    command = f"ffmpeg -i {url} -c copy {output_path}"
+    command = t"ffmpeg -i {url} -c copy {output_path}"
     subprocess.run(command, shell=True, check=True)
 
 # Command handler for /start
