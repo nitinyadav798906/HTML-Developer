@@ -33,7 +33,7 @@ def categorize_urls(urls):
 
     for name, url in urls:
         new_url = url
-        if "media-cdn.classplusapp.com/drm/" in url or "cpvod.testbook" in url:
+        if "https://media-cdn.classplusapp.com/drm/" in url or "cpvod.testbook" in url:
             new_url = f"https://api.extractor.workers.dev/player?url="
             videos.append((name, new_url))
             
