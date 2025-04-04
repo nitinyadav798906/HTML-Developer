@@ -1,4 +1,3 @@
-Google-Edge-Cache
 xmltodict 
 requests 
 pycryptodomex
