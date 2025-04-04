@@ -473,4 +473,4 @@ async def handle_file(client: Client, message: Message):
 # Run the bot
 if __name__ == "__main__":
     print("Bot is running...")
-    app.run()import os
+    app.run()
