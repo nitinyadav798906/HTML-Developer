@@ -34,3 +34,4 @@ beautifulsoup4
 cloudscraper
 m3u8
 subprocess
+mpd
