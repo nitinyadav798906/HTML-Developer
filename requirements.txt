@@ -1,4 +1,13 @@
-aiohttp
+ffmpeg-python==0.2.0
+requests==2.31.0
+yt-dlp==2023.10.13
+PyQt5==5.15.10
+selenium-wire==5.1.0
+urllib3==1.26.18
+xmltodict==0.13.0
+packaging==23.2
+setuptools==68.2.2
+google-api-python-client==2.118.0
 yt-dlp
 pyromod
 TgCrypto==1.2.5
@@ -42,4 +51,3 @@ beautifulsoup4
 cloudscraper
 m3u8
 python-telegram-bot==20.0
-subprocess
