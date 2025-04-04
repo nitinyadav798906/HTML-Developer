@@ -47,10 +47,8 @@ def categorize_urls(urls):
             
         elif ".m3u8" in url:
             videos.append((name, url))
-
         elif ".mp4" in url:
-            videos.append((name, url))
-            
+            videos.append((name, url))            
         elif "pdf" in url:
             pdfs.append((name, url))
         else:
@@ -267,7 +265,7 @@ def generate_html(file_name, videos, pdfs, others):
 <body>
     <div class="header">
         {file_name_without_extension}
-        <div class="subheading">📥 Extracted By: <a href="https://t.me/gjskisb" target="_blank">International study organization 🇮🇳™</a></div>
+        <div class="subheading">📥 Extracted By: <a href="https://t.me/gjskisb" target="_blank">International study organization™</a></div>
     </div>
 
     <div id="video-player">
