@@ -38,4 +38,3 @@ pycurl
 m3u8
 bs4
 pytube
-mp4
