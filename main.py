@@ -271,11 +271,11 @@ def generate_html(file_name, videos, pdfs, others):
 <body>
     <div class="header">
         {file_name_without_extension}
-        <div class="subheading">📥 Extracted By: <a href="https://t.me/gjskisb" target="_blank">Sachin yadav Nitin yadav™</a></div>
+        <div class="subheading">📥 Extracted By: <a href="https://t.me/gjskisb" target="_blank">International study organization 🇮🇳™</a></div>
     </div>
 
     <div id="video-player">
-        <video id="engineer-babu-player" class="video-js vjs-default-skin" controls preload="auto" width="640" height="360">
+        <video id="engineer-babu-player" class="video-js vjs-default-skin" controls preload="auto" width="1280" height="720">
             <p class="vjs-no-js">
                 To view this video please enable JavaScript, and consider upgrading to a web browser that
                 <a href="https://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a>
