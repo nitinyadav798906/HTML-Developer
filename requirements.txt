@@ -35,3 +35,4 @@ cloudscraper
 m3u8
 subprocess
 mpd
+pip3 install
