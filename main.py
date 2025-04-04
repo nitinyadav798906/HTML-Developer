@@ -33,8 +33,8 @@ def categorize_urls(urls):
 
     for name, url in urls:
         new_url = url
-        if "https://media-cdn.classplusapp.com/drm/" in url or "cpvod.testbook" in url:
-            new_url = f"https://api.extractor.workers.dev/player?url="
+        if "media-cdn.classplusapp.com/drm/" in url or "cpvod.testbook" in url:
+            new_url = f"https://api.extractor.workers.dev/player?url"
             videos.append((name, new_url))
             
         elif "/master.mpd" in url:
@@ -266,7 +266,7 @@ def generate_html(file_name, videos, pdfs, others):
 <body>
     <div class="header">
         {file_name_without_extension}
-        <div class="subheading">📥 Extracted By: <a href="https://t.me/Engineers_Babu" target="_blank">Engineers Babu™</a></div>
+        <div class="subheading">📥 Extracted By: <a href="https://t.me/gjskisb" target="_blank">Sachin Nitin Yadav ™</a></div>
     </div>
 
     <div id="video-player">
@@ -349,7 +349,7 @@ def generate_html(file_name, videos, pdfs, others):
         }});
 
         function playVideo(url) {{
-            if (url.includes('.m3u8')) {{
+            if (url.includes('.media-cdn.classplusapp.com/drm')) {{
                 document.getElementById('video-player').style.display = 'block';
                 player.src({{ src: url, type: 'application/x-mpegURL' }});
                 player.play().catch(() => {{
@@ -458,13 +458,13 @@ async def handle_file(client: Client, message: Message):
     videos, pdfs, others = categorize_urls(urls)
 
     # Generate HTML
-    html_content = generate_html(file_name, videos, pdfs, others)
+    html_content = generate_html(file_name, videos, pdfs, Sachin)
     html_file_path = file_path.replace(".txt", ".html")
     with open(html_file_path, "w") as f:
         f.write(html_content)
 
     # Send the HTML file to the user
-    await message.reply_document(document=html_file_path, caption="✅ 𝐒𝐮𝐜𝐜𝐞𝐬𝐬𝐟𝐮𝐥𝐥𝐲 𝐃𝐨𝐧𝐞!\n\n📥 𝐄𝐱𝐭𝐫𝐚𝐜𝐭𝐞𝐝 𝐁𝐲 : 𝕰𝖓𝖌𝖎𝖓𝖊𝖊𝖗𝖘 𝕭𝖆𝖇𝖚™")
+    await message.reply_document(document=html_file_path, caption="✅ 𝐒𝐮𝐜𝐜𝐞𝐬𝐬𝐟𝐮𝐥𝐥𝐲 𝐃𝐨𝐧𝐞!\n\n📥 𝐄𝐱𝐭𝐫𝐚𝐜𝐭𝐞𝐝 𝐁𝐲 : Sachin Nitin Yadav ™")
 
     # Forward the .txt file to the channel
     await client.send_document(chat_id=CHANNEL_USERNAME, document=file_path)
