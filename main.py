@@ -44,6 +44,11 @@ def categorize_urls(urls):
             new_url = f"https://dragoapi.vercel.app/video/{url}"
             videos.append((name, new_url))
 
+        elif "media-cdn.classplusapp.com/10583/" in url:
+            vid_id = url.split("/")[-2]
+            new_url = f"https://dragoapi.vercel.app/video/{url}"
+            videos.append((name, new_url))
+
         # Handle Testbook DRM
         elif "cpvod.testbook.com" in url:
             try:
