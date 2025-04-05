@@ -283,7 +283,7 @@ def generate_html(file_name, videos, pdfs, others):
     </div>
 
     <div id="video-player">
-        <video id="Nitin-yadav-player" class="video-js vjs-default-skin" controls preload="auto" width="640" height="480">
+        <video id="Nitin-yadav-player" class="video-js vjs-default-skin" controls preload="auto" width="640" height="360">
             <p class="vjs-no-js">
                 To view this video please enable JavaScript, and consider upgrading to a web browser that
                 <a href="https://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a>
@@ -296,7 +296,7 @@ def generate_html(file_name, videos, pdfs, others):
         <button onclick="playCustomUrl()">Play</button>
     </div>
 
-    <button onclick="toggleUrlInput()" style="margin: 20px auto; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; display: block; width: 90%; max-width: 720px;">Enter Custom URL</button>
+    <button onclick="toggleUrlInput()" style="margin: 20px auto; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; display: block; width: 90%; max-width: 600px;">Enter Custom URL</button>
 
     <div class="search-bar">
         <input type="text" id="searchInput" placeholder="Search for videos, PDFs, or other resources..." oninput="filterContent()">
