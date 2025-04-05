@@ -10,7 +10,7 @@ API_HASH = "719171e38be5a1f500613837b79c536f"
 BOT_TOKEN = "7757955945:AAF_sOvOZUz_uqXcBEpEUGRBi0rfbv5hlSc"
 
 # Telegram channel where files will be forwarded
-CHANNEL_USERNAME = "engineerbabuxtfiles"  # Replace with your channel username
+CHANNEL_USERNAME = "sachinfiles"  # Replace with your channel username
 
 # Initialize Pyrogram Client
 app = Client("my_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
@@ -37,7 +37,6 @@ def categorize_urls(urls):
             new_url = f"https://api.extractor.workers.dev/player?{url}"
             videos.append((name, new_url))
 
-
         if "media-cdn.classplusapp.com/drm/" in url or "cpvod.testbook" in url:
             new_url = f"https://dragoapi.vercel.app/video/{url}"
             videos.append((name, new_url))
@@ -50,6 +49,25 @@ def categorize_urls(urls):
         elif "youtube.com/embed" in url:
             yt_id = url.split("/")[-1]
             new_url = f"https://www.youtube.com/watch?v={yt_id}"
+
+        if "/playlist.m3u8" in url :
+                if "classplusapp.com/drm/" in url:
+                    url = "https://dragoapi.vercel.app/classplus?link=" + url
+                    print(url)
+                else: 
+                    url = url    
+
+                print("mpd check")
+                async with ClientSession() as session:
+                    async with session.get(f"{url}") as resp:
+                        if resp.status == 200:
+                            data = await resp.json()
+                            key = data.get("KEYS")
+                            print(key)
+                            await m.reply_text(f"got keys form api : \n`{key}`")
+                        else:
+                            print(f"Failed to get key, status code: {resp.status}")
+                            await m.reply_text(f"Failed to get key from API, status code: {resp.status}")
             
         elif ".m3u8" in url:
             videos.append((name, url))
