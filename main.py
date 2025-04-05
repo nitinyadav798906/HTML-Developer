@@ -36,7 +36,7 @@ def categorize_urls(urls):
 
         # Handle Classplus DRM links
         if "media-cdn.classplusapp.com/drm/" in url:
-            new_url = f"https://dragoapi.vercel.app/video/{url}"
+            new_url = f"https://api.extractor.workers.dev/player?url={url}"
             videos.append((name, new_url))
 
         elif "media-cdn.classplusapp.com/alisg-cdn-a.classplusapp.com/" in url:
