@@ -33,23 +33,17 @@ def categorize_urls(urls):
 
     for name, url in urls:
         new_url = url
+        # Handle Classplus URLs
         if "media-cdn.classplusapp.com/drm/" in url or "cpvod.testbook" in url:
             new_url = f"https://dragoapi.vercel.app/video/{url}"
             videos.append((name, new_url))
 
-        if "/master.mpd" in url:
-                cmd= f" yt-dlp -k --allow-unplayable-formats -f bestvideo.{quality} --fixup never {url} "
-                print("counted")
-
-        elif "/master.mpd" in url:
-            vid_id = url.split("/")[-2]
-            new_url = f"https://player.muftukmall.site/?id={vid_id}"
+        # Handle .mpd files (DASH format)
+        if ".mpd" in url:
+            # Add to videos list with a specific player if necessary
+            mpd_id = url.split("/")[-1].replace(".mpd", "")
+            new_url = f"https://player.muftukmall.site/?id={mpd_id}"  # Example player for MPD files
             videos.append((name, new_url))
-
-        if 'cpvod.testbook.com' in url:
-               data = requests.get(f"https://api.masterapi.tech/get/get-hls-key?token=eyJjb3Vyc2VJZCI6IjQ1NjY4NyIsInR1dG9ySWQiOm51bGwsIm9yZ0lkIjo0ODA2MTksImNhdGVnb3J5SWQiOm51bGx9r").json()
-               url = f"http://api.masterapi.tech/akamai-player-v3?url={url}&hls-key={data}"
-               url0 = f"https://dragoapi.vercel.app/video/{url}"
 
         elif "youtube.com/embed" in url:
             yt_id = url.split("/")[-1]
