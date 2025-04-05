@@ -33,31 +33,42 @@ def categorize_urls(urls):
 
     for name, url in urls:
         new_url = url
-        # Handle Classplus URLs
-        if "media-cdn.classplusapp.com/drm/" in url or "cpvod.testbook" in url:
+
+        # Handle Classplus DRM links
+        if "media-cdn.classplusapp.com/drm/" in url:
             new_url = f"https://dragoapi.vercel.app/video/{url}"
             videos.append((name, new_url))
 
-        # Handle .mpd files (DASH format)
-        if ".mpd" in url:
-            # Add to videos list with a specific player if necessary
-            mpd_id = url.split("/")[-1].replace(".mpd", "")
-            new_url = f"https://player.muftukmall.site/?id={mpd_id}"  # Example player for MPD files
-            videos.append((name, new_url))
+        # Handle Testbook DRM
+        elif "cpvod.testbook.com" in url:
+            try:
+                data = requests.get("https://api.masterapi.tech/get/get-hls-key?token=eyJjb3...").json()
+                hls_key = data.get("key", "")
+                new_url = f"http://api.masterapi.tech/akamai-player-v3?url={url}&hls-key={hls_key}"
+                videos.append((name, new_url))
+            except Exception as e:
+                print("Error fetching HLS key:", e)
+                others.append((name, url))
 
+        # Youtube embeds
         elif "youtube.com/embed" in url:
             yt_id = url.split("/")[-1]
             new_url = f"https://www.youtube.com/watch?v={yt_id}"
-            
+            videos.append((name, new_url))
+
+        # M3U8 links
         elif ".m3u8" in url:
             videos.append((name, url))
-        elif "pdf" in url:
+
+        # PDF links
+        elif url.lower().endswith(".pdf"):
             pdfs.append((name, url))
+
+        # Fallback
         else:
             others.append((name, url))
 
     return videos, pdfs, others
-
 # Function to generate HTML file with Video.js player
 def generate_html(file_name, videos, pdfs, others):
     file_name_without_extension = os.path.splitext(file_name)[0]
