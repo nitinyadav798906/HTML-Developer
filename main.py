@@ -458,7 +458,7 @@ async def handle_file(client: Client, message: Message):
     videos, pdfs, others = categorize_urls(urls)
 
     # Generate HTML
-    html_content = generate_html(file_name, videos, pdfs, Sachin)
+    html_content = generate_html(file_name, videos, pdfs,others)
     html_file_path = file_path.replace(".txt", ".html")
     with open(html_file_path, "w") as f:
         f.write(html_content)
