@@ -39,7 +39,7 @@ def categorize_urls(urls):
             new_url = f"https://dragoapi.vercel.app/video/{url}"
             videos.append((name, new_url))
 
-        elif "/master.m3u8" in url:
+        elif "media-cdn.classplusapp.com/alisg-cdn-a.classplusapp.com/" in url:
             vid_id = url.split("/")[-2]
             new_url = f"https://api.extractor.workers.dev/player?url={vid_id}"
             videos.append((name, new_url))
