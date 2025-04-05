@@ -33,36 +33,42 @@ def categorize_urls(urls):
 
     for name, url in urls:
         new_url = url
-        if "media-cdn.classplusapp.com/drm/" in url or "cpvod.testbook" in url:
-            new_url = f"https://api.extractor.workers.dev/player?{url}"
+        
+        # Case 1: ClassPlus DRM Videos
+        if "media-cdn.classplusapp.com/drm/" in url:
+            new_url = f"https://dragoapi.vercel.app/classplus?link={url}"
             videos.append((name, new_url))
-
-        if "media-cdn.classplusapp.com/drm/" in url or "cpvod.testbook" in url:
+        
+        # Case 2: Testbook CPVOD
+        elif "cpvod.testbook" in url:
             new_url = f"https://dragoapi.vercel.app/video/{url}"
             videos.append((name, new_url))
-            
+        
+        # Case 3: MPD Links
         elif "/master.mpd" in url:
             vid_id = url.split("/")[-2]
             new_url = f"https://player.muftukmall.site/?id={vid_id}"
             videos.append((name, new_url))
-
+        
+        # Case 4: YouTube Embeds
         elif "youtube.com/embed" in url:
             yt_id = url.split("/")[-1]
             new_url = f"https://www.youtube.com/watch?v={yt_id}"
-
-        if "/playlist.m3u8" in url :
-                if "classplusapp.com/drm/" in url:
-                    url = "https://dragoapi.vercel.app/classplus?link=" + url
-                    print(url)
-                else: 
-                    url = url    
-            
+            videos.append((name, new_url))
+        
+        # Case 5: HLS/M3U8
         elif ".m3u8" in url:
             videos.append((name, url))
+        
+        # Case 6: MP4
         elif ".mp4" in url:
             videos.append((name, url))
-        elif "pdf" in url:
+        
+        # PDFs
+        elif "pdf" in url.lower():
             pdfs.append((name, url))
+        
+        # Others
         else:
             others.append((name, url))
 
