@@ -10,7 +10,7 @@ API_HASH = "719171e38be5a1f500613837b79c536f"
 BOT_TOKEN = "7757955945:AAF_sOvOZUz_uqXcBEpEUGRBi0rfbv5hlSc"
 
 # Telegram channel where files will be forwarded
-CHANNEL_USERNAME = "sachinfiles"  # Replace with your channel username
+CHANNEL_USERNAME = "Internationalstudyorganization"  # Replace with your channel username
 
 # Initialize Pyrogram Client
 app = Client("my_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
@@ -34,23 +34,19 @@ def categorize_urls(urls):
     for name, url in urls:
         new_url = url
         
-        # Case 1: ClassPlus DRM Videos
         if "media-cdn.classplusapp.com/drm/" in url:
             new_url = f"https://dragoapi.vercel.app/classplus?link={url}"
             videos.append((name, new_url))
         
-        # Case 2: Testbook CPVOD
         elif "cpvod.testbook" in url:
             new_url = f"https://dragoapi.vercel.app/video/{url}"
             videos.append((name, new_url))
         
-        # Case 3: MPD Links
         elif "/master.mpd" in url:
             vid_id = url.split("/")[-2]
             new_url = f"https://player.muftukmall.site/?id={vid_id}"
             videos.append((name, new_url))
         
-        # Case 4: YouTube Embeds
         elif "youtube.com/embed" in url:
             yt_id = url.split("/")[-1]
             new_url = f"https://www.youtube.com/watch?v={yt_id}"
@@ -287,7 +283,7 @@ def generate_html(file_name, videos, pdfs, others):
     </div>
 
     <div id="video-player">
-        <video id="engineer-babu-player" class="video-js vjs-default-skin" controls preload="auto" width="640" height="360">
+        <video id="Nitin-yadav-player" class="video-js vjs-default-skin" controls preload="auto" width="640" height="480">
             <p class="vjs-no-js">
                 To view this video please enable JavaScript, and consider upgrading to a web browser that
                 <a href="https://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a>
@@ -300,7 +296,7 @@ def generate_html(file_name, videos, pdfs, others):
         <button onclick="playCustomUrl()">Play</button>
     </div>
 
-    <button onclick="toggleUrlInput()" style="margin: 20px auto; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; display: block; width: 90%; max-width: 600px;">Enter Custom URL</button>
+    <button onclick="toggleUrlInput()" style="margin: 20px auto; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; display: block; width: 90%; max-width: 720px;">Enter Custom URL</button>
 
     <div class="search-bar">
         <input type="text" id="searchInput" placeholder="Search for videos, PDFs, or other resources..." oninput="filterContent()">
@@ -335,7 +331,7 @@ def generate_html(file_name, videos, pdfs, others):
         </div>
     </div>
 
-    <div class="footer">Extracted By - <a href="https://t.me/Engineers_Babu" target="_blank">Engineers Babu</a></div>
+    <div class="footer">Extracted By - <a href="https://t.me/gjskisb" target="_blank">Sachin yadav Nitin yadav</a></div>
 
     <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
     <script>
