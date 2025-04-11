@@ -44,6 +44,11 @@ def categorize_urls(urls):
             new_url = f"https://dragoapi.vercel.app/video/{url}"
             videos.append((name, new_url))
 
+        elif "videos.classplusapp.com//" in url:
+            vid_id = url.split("/")[-2]
+            new_url = f"https://api.extractor.workers.dev/player?url={url}"
+            videos.append((name, new_url))
+
         elif "media-cdn.classplusapp.com/10583/" in url:
             vid_id = url.split("/")[-2]
             new_url = f"https://dragoapi.vercel.app/video/{url}"
@@ -343,7 +348,7 @@ def generate_html(file_name, videos, pdfs, others):
         </div>
     </div>
 
-    <div class="footer">Extracted By - <a href="https://t.me/Engineers_Babu" target="_blank">Engineers Babu</a></div>
+    <div class="footer">Extracted By - <a href="https://t.me/Engineers_Babu" target="_blank">sachin yadav nitin yadav</a></div>
 
     <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
     <script>
