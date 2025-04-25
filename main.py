@@ -71,6 +71,12 @@ def categorize_urls(urls):
             new_url = f"https://www.youtube.com/watch?v={yt_id}"
             videos.append((name, new_url))
 
+        #MPD links
+        elif "/master.mpd" in url:
+            vid_id = url.split("/")[-2]
+            new_url = f"https://player.muftukmall.site/?id={vid_id}"
+            videos.append((name, new_url))
+
         # M3U8 links
         elif ".m3u8" in url:
             videos.append((name, url))
@@ -348,7 +354,7 @@ def generate_html(file_name, videos, pdfs, others):
         </div>
     </div>
 
-    <div class="footer">Extracted By - <a href="https://t.me/Engineers_Babu" target="_blank">sachin yadav nitin yadav</a></div>
+    <div class="footer">Extracted By - <a href="https://t.me/raftaar_don" target="_blank">sachin yadav nitin yadav</a></div>
 
     <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
     <script>
@@ -463,7 +469,7 @@ def download_video(url, output_path):
 # Command handler for /start
 @app.on_message(filters.command("start"))
 async def start(client: Client, message: Message):
-    await message.reply_text("𝐖𝐞𝐥𝐜𝐨𝐦𝐞! 𝐏𝐥𝐞𝐚𝐬𝐞 𝐮𝐩𝐥𝐨𝐚𝐝 𝐚 .𝐭𝐱𝐭 𝐟𝐢𝐥𝐞 𝐜𝐨𝐧𝐭𝐚𝐢𝐧𝐢𝐧𝐠 𝐔𝐑𝐋𝐬.")
+    await message.reply_text("𝐖𝐞𝐥𝐜𝐨𝐦𝐞! file bhej.𝐭𝐱𝐭 𝐟𝐢𝐥𝐞 𝐜𝐨𝐧𝐭𝐚𝐢𝐧𝐢𝐧𝐠 𝐔𝐑𝐋𝐬.")
 
 # Message handler for file uploads
 @app.on_message(filters.document)
