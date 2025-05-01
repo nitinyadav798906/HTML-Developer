@@ -77,6 +77,11 @@ def categorize_urls(urls):
             new_url = f"https://player.muftukmall.site/?id={vid_id}"
             videos.append((name, new_url))
 
+        elif "d1d34p8vz63oiq" in url or "sec1.pw.live" in url:
+                vid_id =  url.split('/')[-2]
+                url = f"https://anonymouspwplayer-b99f57957198.herokuapp.com/pw?url={url}?token={https://api-accesstoken.vercel.app/}"
+                videos.append((name, new_url))
+
         # M3U8 links
         elif ".m3u8" in url:
             videos.append((name, url))
