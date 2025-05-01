@@ -72,7 +72,7 @@ def categorize_urls(urls):
             videos.append((name, new_url))
 
         #MPD links
-        elif "/master.mpd" in url:
+        elif "d1d34p8vz63oiq.cloudfront.net" in url:
             vid_id = url.split("/")[-2]
             new_url = f"https://anonymouspwplayer-b99f57957198.herokuapp.com/pw?url={url}?token="
             videos.append((name, new_url))
