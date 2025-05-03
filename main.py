@@ -35,11 +35,16 @@ def categorize_urls(urls):
         new_url = url
 
         # Handle Classplus DRM links
-        if "media-cdn.classplusapp.com/" in url:
-            new_url = f"https://api.masterapi.tech/get/cp/dl?url={url}"
+        if "media-cdn.classplusapp.com/drm/" in url:
+            new_url = f"https://api.extractor.workers.dev/player?url={url}"
             videos.append((name, new_url))
 
         elif "videos.classplusapp.com/" in url:
+            vid_id = url.split("/")[-2]
+            new_url = f"https://api.masterapi.tech/get/cp/dl?url={url}"
+            videos.append((name, new_url))
+
+        elif "alisg-cdn-a.classplusapp.com/" in url:
             vid_id = url.split("/")[-2]
             new_url = f"https://api.masterapi.tech/get/cp/dl?url={url}"
             videos.append((name, new_url))
