@@ -36,7 +36,7 @@ def categorize_urls(urls):
 
         # Handle Classplus DRM links
         if "media-cdn.classplusapp.com/drm/" in url:
-            new_url = f"https://api.extractor.workers.dev/player?url={url}"
+            new_url = f"https://api.masterapi.tech/get/cp/dl?url={url}"
             videos.append((name, new_url))
 
         elif "media-cdn.classplusapp.com/alisg-cdn-a.classplusapp.com/" in url:
@@ -44,14 +44,14 @@ def categorize_urls(urls):
             new_url = f"https://api.masterapi.tech/get/cp/dl?url={url}"
             videos.append((name, new_url))
 
-        elif "videos.classplusapp.com//" in url:
+        elif "videos.classplusapp.com/" in url:
             vid_id = url.split("/")[-2]
             new_url = f"https://api.masterapi.tech/get/cp/dl?url={url}"
             videos.append((name, new_url))
 
         elif "media-cdn.classplusapp.com/10583/" in url:
             vid_id = url.split("/")[-2]
-            new_url = f"https://dragoapi.vercel.app/video/{url}"
+            new_url = f"https://api.extractor.workers.dev/player?url={url}"
             videos.append((name, new_url))
 
         # Handle Testbook DRM
@@ -74,7 +74,7 @@ def categorize_urls(urls):
         #MPD links
         elif "d1d34p8vz63oiq.cloudfront.net" in url:
             vid_id = url.split("/")[-2]
-            new_url = f"https://anonymouspwplayer-b99f57957198.herokuapp.com/pw?url={url}?token="
+            new_url = f"https://pwplayer-38c1ae95b681.herokuapp.com/pw?url={url}&token={your_working_token}"
             videos.append((name, new_url))
 
         # M3U8 links
