@@ -85,23 +85,9 @@ def categorize_urls(urls):
         elif ".m3u8" in url:
             videos.append((name, url))
             
-           # function playVideo(url) {
-    elif (url.includes('.m3u8')) {
-        document.getElementById('video-player').style.display = 'block';
-        player.src({ src: url, type: 'application/x-mpegURL' });
-        player.play().catch(() => {
-            window.open(url, '_blank');
-        });
-    } else if (url.includes('.mp4')) {
-        document.getElementById('video-player').style.display = 'block';
-        player.src({ src: url, type: 'video/mp4' });
-        player.play().catch(() => {
-            window.open(url, '_blank');
-        });
-    } else {
-        window.open(url, '_blank');  // For .mkv and unsupported formats
-}
-
+        elif ".mkv" in url:
+            videos.append((name, url))
+            
         elif ".mp4" in url:
             videos.append((name, url))
 
