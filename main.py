@@ -100,7 +100,6 @@ def categorize_urls(urls):
         });
     } else {
         window.open(url, '_blank');  // For .mkv and unsupported formats
-    }
 }
 
         elif ".mp4" in url:
