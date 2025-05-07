@@ -34,6 +34,10 @@ def categorize_urls(urls):
     for name, url in urls:
         new_url = url
 
+        def convert_mkv_to_mp4(input_path, output_path):
+    command = f"ffmpeg -i \"{input_path}\" -c:v copy -c:a aac -strict experimental \"{output_path}\""
+    subprocess.run(command, shell=True, check=True)
+
         # Handle Classplus DRM links
         if "media-cdn.classplusapp.com/drm/" in url:
             new_url = f"https://api.extractor.workers.dev/player?url={url}"
@@ -80,6 +84,24 @@ def categorize_urls(urls):
         # M3U8 links
         elif ".m3u8" in url:
             videos.append((name, url))
+            
+           # function playVideo(url) {
+    elif (url.includes('.m3u8')) {
+        document.getElementById('video-player').style.display = 'block';
+        player.src({ src: url, type: 'application/x-mpegURL' });
+        player.play().catch(() => {
+            window.open(url, '_blank');
+        });
+    } else if (url.includes('.mp4')) {
+        document.getElementById('video-player').style.display = 'block';
+        player.src({ src: url, type: 'video/mp4' });
+        player.play().catch(() => {
+            window.open(url, '_blank');
+        });
+    } else {
+        window.open(url, '_blank');  // For .mkv and unsupported formats
+    }
+}
 
         elif ".mp4" in url:
             videos.append((name, url))
