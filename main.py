@@ -34,10 +34,6 @@ def categorize_urls(urls):
     for name, url in urls:
         new_url = url
 
-        def convert_mkv_to_mp4(input_path, output_path):
-    command = f"ffmpeg -i \"{input_path}\" -c:v copy -c:a aac -strict experimental \"{output_path}\""
-    subprocess.run(command, shell=True, check=True)
-
         # Handle Classplus DRM links
         if "media-cdn.classplusapp.com/drm/" in url:
             new_url = f"https://api.extractor.workers.dev/player?url={url}"
