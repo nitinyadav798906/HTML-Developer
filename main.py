@@ -35,7 +35,7 @@ def categorize_urls(urls):
         new_url = url
 
         # Handle Classplus DRM links
-        if "media-cdn.classplusapp.com/drm/" in url:
+        if "media-cdn.classplusapp.com/drm/" in url or "tencent" in url or "1681" in url or "/cc/" in url or "videos.classplusapp.com" in url:
             new_url = f"https://api.extractor.workers.dev/player?url={url}"
             videos.append((name, new_url))
 
