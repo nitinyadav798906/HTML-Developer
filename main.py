@@ -44,6 +44,11 @@ def categorize_urls(urls):
             new_url = f"https://api.masterapi.tech/get/cp/dl?url={url}"
             videos.append((name, new_url))
 
+        elif "d1q5ugnejk3zoi.cloudfront.net/" in url:
+            vid_id = url.split("/")[-2]
+            new_url = f"https://m3u8play.dev/?url={url}"
+            videos.append((name, new_url))
+
         elif "media-cdn.classplusapp.com/alisg-cdn-a.classplusapp.com/" in url:
             vid_id = url.split("/")[-2]
             new_url = f"https://api.masterapi.tech/get/cp/dl?url={url}"
