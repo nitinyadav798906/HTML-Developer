@@ -46,7 +46,7 @@ def categorize_urls(urls):
 
         elif "d1q5ugnejk3zoi.cloudfront.net/" in url:
             vid_id = url.split("/")[-2]
-            new_url = f"https://cr7tv.github.io/player/player2.html?url={url}"
+            new_url = f"https://eyecatchup.github.io/hlscast/player.html?fullscreen=1&autostart=1&video={url}"
             videos.append((name, new_url))
 
         elif "media-cdn.classplusapp.com/alisg-cdn-a.classplusapp.com/" in url:
