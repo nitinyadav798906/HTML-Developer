@@ -44,7 +44,7 @@ def categorize_urls(urls):
             new_url = f"https://api.masterapi.tech/get/cp/dl?url={url}"
             videos.append((name, new_url))
 
-        elif "d1q5ugnejk3zoi.cloudfront.net/" in url or "6UkV0qNY.mp4" in url or "notrbHqj.mp4" in url or ".mp4.m3u8" in url:
+        elif "d1q5ugnejk3zoi.cloudfront.net/" in url or "6UkV0qNY.mp4" in url or "notrbHqj.mp4" in url or ".mp4.m3u8" in url or "0IRSs8nO.mp4" in url:
             vid_id = url.split("/")[-2]
             new_url = f"https://eyecatchup.github.io/hlscast/player.html?fullscreen=1&autostart=1&video={url}"
             videos.append((name, new_url))
