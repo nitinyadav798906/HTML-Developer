@@ -77,9 +77,9 @@ def categorize_urls(urls):
             videos.append((name, new_url))
 
         #MPD links
-        elif "d1d34p8vz63oiq.cloudfront.net" in url:
+        elif ".mpd" in url:
             vid_id = url.split("/")[-2]
-            new_url = f"hhttps://download.asmultiverse.com/{video_id}/master.mpd"
+            new_url = f"hhttps://download.asmultiverse.com/{video_id}/master.m3u8"
             videos.append((name, new_url))
 
         # M3U8 links
