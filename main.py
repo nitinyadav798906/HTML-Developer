@@ -77,7 +77,7 @@ def categorize_urls(urls):
             videos.append((name, new_url))
 
         #MPD links
-        elif ".mpd" in url:
+        elif "/master.mpd" in url:
             vid_id = url.split("/")[-2]
             new_url = f"hhttps://download.asmultiverse.com/{video_id}/master.m3u8"
             videos.append((name, new_url))
