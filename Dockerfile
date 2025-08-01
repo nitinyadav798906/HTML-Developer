@@ -7,4 +7,4 @@ COPY requirements.txt .
 RUN pip install -r requirements.txt
 COPY . .
 RUN python3 -m pip check yt-dlp
-CMD ["python3", "bot.py"]
+CMD gunicorn app:app & python3 main.py
