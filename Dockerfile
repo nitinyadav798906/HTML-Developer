@@ -1,6 +1,9 @@
 # Use a Python 3.12.3 Alpine base image
 FROM python:3.12-alpine3.20
-
+RUN apt-get update -y && apt-get upgrade -y \
+    && apt-get install -y --no-install-recommends gcc libffi-dev musl-dev ffmpeg aria2 python3-pip \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 # Set the working directory
 WORKDIR /app
 
