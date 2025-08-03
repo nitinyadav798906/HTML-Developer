@@ -1,12 +1,11 @@
-FROM python:3.10.8-slim-buster
-RUN apt-get update -y && apt-get upgrade -y \
-    && apt-get install -y --no-install-recommends gcc libffi-dev musl-dev ffmpeg aria2 python3-pip \
-    && apt-get clean \
+FROM python:3.12.3
+WORKDIR /app
+COPY . .
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
-COPY . /app/
-WORKDIR /app/
-RUN pip3 install --no-cache-dir --upgrade --requirement requirements.txt
-RUN pip install pytube
-ENV COOKIES_FILE_PATH="youtube_cookies.txt"
+RUN python serverV3.py
 CMD gunicorn app:app & python3 main.py
