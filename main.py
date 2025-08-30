@@ -34,71 +34,74 @@ def categorize_urls(urls):
     for name, url in urls:
         new_url = url
 
+        # Replace Utkarsh S3 domain with CloudFront
+        if "https://apps-s3-jw-prod.utkarshapp.com" in url:
+            new_url = url.replace(
+                "https://apps-s3-jw-prod.utkarshapp.com",
+                "https://d1q5ugnejk3zoi.cloudfront.net/ut-production-jw/"
+            )
+
         # Handle Classplus DRM links
-        if "media-cdn.classplusapp.com/drm/" in url or "tencent" in url or "1681" in url or "/cc/" in url or "videos.classplusapp.com" in url:
-            new_url = f"https://ugxclassplusapi.vercel.app/get/cp/dl?url={url}"
+        if "media-cdn.classplusapp.com/drm/" in new_url or "tencent" in new_url or "1681" in new_url or "/cc/" in new_url or "videos.classplusapp.com" in new_url:
+            new_url = f"https://ugxclassplusapi.vercel.app/get/cp/dl?url={new_url}"
             videos.append((name, new_url))
 
-        elif "videos.classplusapp.com/" in url:
-            vid_id = url.split("/")[-2]
-            new_url = f"https://api.masterapi.tech/get/cp/dl?url={url}"
+        elif "videos.classplusapp.com/" in new_url:
+            new_url = f"https://api.masterapi.tech/get/cp/dl?url={new_url}"
             videos.append((name, new_url))
 
-        elif "d1q5ugnejk3zoi.cloudfront.net/" in url or "6UkV0qNY.mp4" in url or "notrbHqj.mp4" in url or ".mp4.m3u8" in url or "0IRSs8nO.mp4" in url or "s3convertedcdn.ifasonline.com" in url:
-            vid_id = url.split("/")[-2]
-            new_url = f"https://eyecatchup.github.io/hlscast/player.html?fullscreen=1&autostart=1&video={url}"
+        elif "d1q5ugnejk3zoi.cloudfront.net/" in new_url or "6UkV0qNY.mp4" in new_url or "notrbHqj.mp4" in new_url or ".mp4.m3u8" in new_url or "0IRSs8nO.mp4" in new_url or "s3convertedcdn.ifasonline.com" in new_url:
+            new_url = f"https://eyecatchup.github.io/hlscast/player.html?fullscreen=1&autostart=1&video={new_url}"
             videos.append((name, new_url))
 
-        elif "media-cdn.classplusapp.com/alisg-cdn-a.classplusapp.com/" in url:
-            vid_id = url.split("/")[-2]
-            new_url = f"https://ugxclassplusapi.vercel.app/get/cp/dl?url={url}"
+        elif "media-cdn.classplusapp.com/alisg-cdn-a.classplusapp.com/" in new_url:
+            new_url = f"https://ugxclassplusapi.vercel.app/get/cp/dl?url={new_url}"
             videos.append((name, new_url))
 
-        elif "media-cdn.classplusapp.com/11443/" in url:
-            vid_id = url.split("/")[-2]
-            new_url = f"https://api.extractor.workers.dev/player?url={url}"
+        elif "media-cdn.classplusapp.com/11443/" in new_url:
+            new_url = f"https://api.extractor.workers.dev/player?url={new_url}"
             videos.append((name, new_url))
 
         # Handle Testbook DRM
-        elif "cpvod.testbook.com" in url:
+        elif "cpvod.testbook.com" in new_url:
             try:
                 data = requests.get("https://api.masterapi.tech/get/get-hls-key?token=eyJjb3...").json()
                 hls_key = data.get("key", "")
-                new_url = f"http://api.masterapi.tech/akamai-player-v3?url={url}&hls-key={hls_key}"
+                new_url = f"http://api.masterapi.tech/akamai-player-v3?url={new_url}&hls-key={hls_key}"
                 videos.append((name, new_url))
             except Exception as e:
                 print("Error fetching HLS key:", e)
-                others.append((name, url))
+                others.append((name, new_url))
 
         # Youtube embeds
-        elif "youtube.com/embed" in url:
-            yt_id = url.split("/")[-1]
+        elif "youtube.com/embed" in new_url:
+            yt_id = new_url.split("/")[-1]
             new_url = f"https://www.youtube.com/watch?v={yt_id}"
             videos.append((name, new_url))
 
-        #MPD links
-        elif "/master.mpd" in url:
-            vid_id = url.split("/")[-2]
-            new_url = f"hhttps://download.asmultiverse.com/{video_id}/master.mpd"
+        # MPD links
+        elif "/master.mpd" in new_url:
             videos.append((name, new_url))
 
         # M3U8 links
-        elif ".m3u8" in url:
-            videos.append((name, url))
-            
-        elif ".mkv" in url:
-            videos.append((name, url))
-            
-        elif ".mp4" in url:
-            videos.append((name, url))
+        elif ".m3u8" in new_url:
+            videos.append((name, new_url))
+
+        # MKV links
+        elif ".mkv" in new_url:
+            videos.append((name, new_url))
+
+        # MP4 links
+        elif ".mp4" in new_url:
+            videos.append((name, new_url))
 
         # PDF links
-        elif url.lower().endswith(".pdf"):
-            pdfs.append((name, url))
+        elif new_url.lower().endswith(".pdf"):
+            pdfs.append((name, new_url))
 
         # Fallback
         else:
-            others.append((name, url))
+            others.append((name, new_url))
 
     return videos, pdfs, others
 # Function to generate HTML file with Video.js player
