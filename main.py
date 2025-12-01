@@ -43,7 +43,7 @@ def categorize_urls(urls):
 
         # Handle Classplus DRM links
         if "media-cdn.classplusapp.com/drm/" in new_url or "tencent" in new_url or "1681" in new_url or "/cc/" in new_url or "videos.classplusapp.com" in new_url:
-            new_url = f"https://ugxclassplusapi.vercel.app/get/cp/dl?url={new_url}"
+            new_url = f"https://itsgolu-v1player.vercel.app/?url={new_url}"
             videos.append((name, new_url))
 
         elif "videos.classplusapp.com/" in new_url:
@@ -55,11 +55,11 @@ def categorize_urls(urls):
             videos.append((name, new_url))
 
         elif "media-cdn.classplusapp.com/alisg-cdn-a.classplusapp.com/" in new_url:
-            new_url = f"https://ugxclassplusapi.vercel.app/get/cp/dl?url={new_url}"
+            new_url = f"https://itsgolu-v1player.vercel.app/?url={new_url}"
             videos.append((name, new_url))
 
         elif "media-cdn.classplusapp.com/11443/" in new_url:
-            new_url = f"https://api.extractor.workers.dev/player?url={new_url}"
+            new_url = f"https://itsgolu-v1player.vercel.app/?url={new_url}"
             videos.append((name, new_url))
 
         # Handle Testbook DRM
