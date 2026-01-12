@@ -83,6 +83,10 @@ def categorize_urls(urls):
         elif "/master.mpd" in new_url:
             videos.append((name, new_url))
 
+        # WEBM links
+        elif ".webm" in new_url:
+            videos.append((name, new_url))
+
         # M3U8 links
         elif ".m3u8" in new_url:
             videos.append((name, new_url))
