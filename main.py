@@ -7,7 +7,7 @@ BOT_OWNER_NAME = "Sachin Yadav & Nitin Yadav"
 API_ID = "12475131"
 API_HASH = "719171e38be5a1f500613837b79c536f"
 BOT_TOKEN = "8551687208:AAG0Vuuj3lyUhU1zClA_0C7VNS6pbhXUvsk"
-TELEGRAM_LINK = "@Raftaarss_don" # Apna link yaha dale
+TELEGRAM_LINK = "https://t.me/Raftaarss_don" # Apna link yaha dale
 
 app = Client("pro_brand_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
@@ -92,7 +92,7 @@ def generate_html(file_name, content):
 
     <div id="content-list">{html_sections}</div>
 
-    <a href="{@Raftaarss_don}" class="footer-btn"><i class="fab fa-telegram-plane"></i> JOIN OUR TELEGRAM</a>
+    <a href="{TELEGRAM_LINK}" class="footer-btn"><i class="fab fa-telegram-plane"></i> JOIN OUR TELEGRAM</a>
 
     <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
     <script>
