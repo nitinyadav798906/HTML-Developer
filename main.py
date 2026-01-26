@@ -9,75 +9,61 @@ API_ID = 12475131
 API_HASH = "719171e38be5a1f500613837b79c536f"
 BOT_TOKEN = "8551687208:AAG0Vuuj3lyUhU1zClA_0C7VNS6pbhXUvsk"
 
+# Domain Configuration
 OLD_DOMAINS = ["https://apps-s3-jw-prod.utkarshapp.com/", "https://apps-s3-prod.utkarshapp.com/", "https://apps-s3-video-dist.utkarshapp.com/"]
 NEW_DOMAIN = "https://d1q5ugnejk3zoi.cloudfront.net/ut-production-jw/"
 
-app = Client("ultimate_option_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+app = Client("complete_pro_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 user_mode = {}
 
-def fix_domain(url):
-    for d in OLD_DOMAINS:
-        if d in url: return url.replace(d, NEW_DOMAIN)
+# Logic: Sirf Video links ka domain badalne ke liye
+def fix_video_domain(url):
+    low = url.lower()
+    if any(ext in low for ext in [".mp4", ".m3u8", ".mpd", "/m3u8"]):
+        for d in OLD_DOMAINS:
+            if d in url: return url.replace(d, NEW_DOMAIN)
     return url
 
 # ================= 1. HTML TO TXT =================
 def html_to_txt(html_content):
-    matches = re.findall(r'playVideo\(\'(.*?)\'', html_content) or re.findall(r'window\.open\(\'(.*?)\'\)', html_content)
-    names = re.findall(r'<div class="item-name".*?>(.*?)</div>', html_content)
+    # Regex to find links and names from the new structure
+    matches = re.findall(r"'(http.*?)'", html_content)
+    names = re.findall(r'<span class="name">(.*?)</span>', html_content)
     extracted = []
     for u, n in zip(matches, names):
         extracted.append(f"{n.strip()}: {u}")
     return "\n".join(extracted)
 
-# ================= 2. TXT TO HTML =================
+# ================= 2. TXT TO HTML (Filter & Category Style) =================
 def generate_html(file_name, content):
     title = os.path.splitext(file_name)[0]
     now = datetime.now().strftime("%d %b %Y")
     lines = content.strip().split("\n")
-    v_t, p_t = 0, 0
-    folder_data = []
-    current_folder = None
+    
+    items_html = ""
+    v_c = p_c = a_c = o_c = 0
 
-    for line in lines:
+    for idx, line in enumerate(lines):
         line = line.strip()
         if not line or "http" not in line: continue
-        name, url = line.split(":", 1) if ":" in line else ("Class", line)
-        name, url = name.strip(), fix_domain(url.strip())
+        name, url = line.split(":", 1) if ":" in line else ("File", line)
+        name, url = name.strip(), fix_video_domain(url.strip())
         
-        if re.match(r'^(01|1)[\s\.\-]', name) or current_folder is None:
-            if current_folder: folder_data.append(current_folder)
-            f_name = re.sub(r'^(01|1)[\s\.\-]', '', name).strip()
-            current_folder = {"name": f_name, "items": []}
+        # Type Detection
+        low_u = url.lower()
+        if any(x in low_u for x in [".mp4", ".m3u8", ".mpd"]): t = "video"; v_c += 1
+        elif ".pdf" in low_u: t = "pdf"; p_c += 1
+        elif any(x in low_u for x in [".mp3", ".wav", ".m4a"]): t = "audio"; a_c += 1
+        else: t = "other"; o_c += 1
 
-        t = "video" if any(x in url.lower() for x in [".mp4", ".m3u8", ".mpd"]) else "pdf"
-        if t == "video": v_t += 1
-        else: p_t += 1
-        current_folder["items"].append({"name": name, "url": url, "type": t})
-            
-    if current_folder: folder_data.append(current_folder)
-
-    html_folders = ""
-    for idx, f in enumerate(folder_data):
-        html_folders += f'''
-        <div class="folder" onclick="toggle('f-{idx}')">
-            <span>📂 {f['name']}</span>
-            <span class="count-badge">{len(f['items'])}</span>
-        </div>
-        <div id="f-{idx}" class="content" style="display:none;">'''
-        for i in f['items']:
-            icon = "🎬" if i['type']=="video" else "📄"
-            if i['type']=="video":
-                btn = f'''<div class="item">
-                            <div class="item-name">{icon} {i["name"]}</div>
-                            <div class="opt-btns">
-                                <button onclick="playVideo('{i['url']}')">▶️ Play</button>
-                                <button onclick="window.open('{i['url']}')">🔗 Link</button>
-                            </div>
-                          </div>'''
-            else:
-                btn = f'<div class="item" onclick="window.open(\'{i["url"]}\')">{icon} {i["name"]}</div>'
-            html_folders += btn
-        html_folders += "</div>"
+        items_html += f'''
+        <div class="item" data-type="{t}" id="item-{idx}">
+            <div class="item-info" onclick="{f"playVideo('{url}')" if t=='video' else f"window.open('{url}')"}">
+                <span class="icon">{'🎬' if t=='video' else '📄' if t=='pdf' else '🎵' if t=='audio' else '🔗'}</span>
+                <span class="name">{name}</span>
+            </div>
+            <span class="fav-btn" onclick="toggleFav('{idx}')">♡</span>
+        </div>'''
 
     return f"""
 <!DOCTYPE html>
@@ -86,32 +72,61 @@ def generate_html(file_name, content):
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
     <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
     <style>
-        body {{ font-family: 'Poppins', sans-serif; background: #f8f9fa; margin: 0; padding-bottom: 70px; }}
-        .header {{ background: linear-gradient(135deg, #007bff, #00d2d3); color: white; padding: 25px 15px; text-align: center; border-radius: 0 0 25px 25px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }}
-        #player-container {{ display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 3000; }}
-        .close-p {{ position: absolute; top: 15px; right: 20px; color: white; font-size: 35px; cursor: pointer; z-index: 3001; }}
-        .folder {{ background: white; margin: 12px; padding: 18px; border-radius: 12px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #eee; }}
-        .count-badge {{ background: #007bff; color: white; padding: 2px 10px; border-radius: 20px; font-size: 11px; }}
-        .item {{ background: white; margin: 8px 15px; padding: 12px; border-radius: 10px; border-left: 5px solid #007bff; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }}
-        .opt-btns {{ display: flex; gap: 10px; margin-top: 8px; }}
-        .opt-btns button {{ flex: 1; padding: 8px; border: none; border-radius: 5px; background: #f0f2f5; font-weight: bold; cursor: pointer; }}
-        .item-name {{ font-size: 13px; font-weight: 600; }}
-        .search-box {{ width: 85%; padding: 12px; border: none; border-radius: 10px; margin: -20px auto 10px; display: block; box-shadow: 0 4px 10px rgba(0,0,0,0.1); outline: none; }}
+        body {{ font-family: sans-serif; background: #f0f2f5; margin: 0; padding-bottom: 20px; }}
+        .header {{ background: #fff; padding: 15px; text-align: center; border-bottom: 2px solid #007bff; position: sticky; top: 0; z-index: 1000; }}
+        .filter-bar {{ display: flex; overflow-x: auto; padding: 10px; background: #fff; gap: 10px; border-bottom: 1px solid #ddd; position: sticky; top: 60px; z-index: 999; }}
+        .chip {{ padding: 8px 15px; background: #eee; border-radius: 20px; font-size: 12px; white-space: nowrap; cursor: pointer; font-weight: bold; }}
+        .chip.active {{ background: #007bff; color: #fff; }}
+        .item {{ background: #fff; margin: 8px 12px; padding: 15px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #007bff; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }}
+        .item-info {{ flex: 1; display: flex; align-items: center; cursor: pointer; overflow: hidden; }}
+        .name {{ font-size: 13px; font-weight: 600; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }}
+        .icon {{ margin-right: 10px; font-size: 20px; }}
+        .fav-btn {{ font-size: 24px; color: red; cursor: pointer; margin-left: 10px; }}
+        #player-container {{ display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 2000; }}
+        .close-p {{ position: absolute; top: 15px; right: 20px; color: white; font-size: 35px; cursor: pointer; z-index: 2001; }}
     </style>
 </head>
 <body>
     <div id="player-container"><span class="close-p" onclick="closePlayer()">&times;</span><video id="player" playsinline controls></video></div>
     <div class="header">
-        <h2 style="margin:0;">{title}</h2>
-        <p style="font-size:12px; margin:5px 0;">🎥 {v_t} Videos | 📄 {p_t} PDFs</p>
-        <p style="font-size:10px; opacity:0.8;">Owner: {BOT_OWNER_NAME} | {now}</p>
+        <h3 style="margin:0;">{title}</h3>
+        <p style="font-size:10px; color:#888; margin:5px 0;">{BOT_OWNER_NAME} | {now}</p>
     </div>
-    <input type="text" id="q" class="search-box" placeholder="Search lessons..." onkeyup="src()">
-    {html_folders}
+    <div class="filter-bar">
+        <div class="chip active" onclick="filter('all', this)">All</div>
+        <div class="chip" onclick="filter('video', this)">🎬 Videos ({v_c})</div>
+        <div class="chip" onclick="filter('pdf', this)">📄 PDFs ({p_c})</div>
+        <div class="chip" onclick="filter('audio', this)">🎵 Audio ({a_c})</div>
+        <div class="chip" onclick="filter('fav', this)">❤️ Favorites</div>
+    </div>
+    <div id="list">{items_html}</div>
     <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <script>
         const player = new Plyr('#player');
+        let favorites = JSON.parse(localStorage.getItem('favs') || '[]');
+        function filter(type, el) {{
+            document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+            el.classList.add('active');
+            document.querySelectorAll('.item').forEach(i => {{
+                let id = i.id.split('-')[1];
+                if(type === 'all') i.style.display = 'flex';
+                else if(type === 'fav') i.style.display = favorites.includes(id) ? 'flex' : 'none';
+                else i.style.display = i.getAttribute('data-type') === type ? 'flex' : 'none';
+            }});
+        }}
+        function toggleFav(id) {{
+            if(favorites.includes(id)) favorites = favorites.filter(f => f !== id);
+            else favorites.push(id);
+            localStorage.setItem('favs', JSON.stringify(favorites));
+            updateIcons();
+        }}
+        function updateIcons() {{
+            document.querySelectorAll('.item').forEach(i => {{
+                let id = i.id.split('-')[1];
+                i.querySelector('.fav-btn').innerText = favorites.includes(id) ? '❤️' : '♡';
+            }});
+        }}
         function playVideo(url) {{
             document.getElementById('player-container').style.display = 'block';
             if (url.includes('.m3u8')) {{ const hls = new Hls(); hls.loadSource(url); hls.attachMedia(document.getElementById('player')); }}
@@ -119,28 +134,24 @@ def generate_html(file_name, content):
             player.play();
         }}
         function closePlayer() {{ player.pause(); document.getElementById('player-container').style.display = 'none'; }}
-        function toggle(id) {{ var e = document.getElementById(id); e.style.display = e.style.display === 'none' ? 'block' : 'none'; }}
-        function src() {{ 
-            var v = document.getElementById('q').value.toLowerCase(); 
-            document.querySelectorAll('.item').forEach(i => i.style.display = i.innerText.toLowerCase().includes(v) ? 'block' : 'none'); 
-        }}
+        updateIcons();
     </script>
 </body>
 </html>
 """
 
-# ================= COMMANDS =================
+# ================= COMMAND HANDLERS =================
 @app.on_message(filters.command("start"))
 async def start(c, m):
-    await m.reply_text(f"🚀 **{BOT_OWNER_NAME} Bot Active**\n\nCommands:\n/html - TXT to HTML\n/txt - HTML to TXT\n/domain - Only Change Domain")
+    await m.reply_text(f"👑 **{BOT_OWNER_NAME} Bot Active**\n\n/html - TXT to Filter HTML\n/txt - HTML to TXT\n/domain - Only Video Domain Change")
 
 @app.on_message(filters.command(["html", "txt", "domain"]))
-async def mode(c, m):
+async def mode_selection(c, m):
     user_mode[m.from_user.id] = m.command[0]
-    await m.reply_text(f"✅ Mode Switched: **{m.command[0].upper()}**")
+    await m.reply_text(f"✅ Mode: **{m.command[0].upper()}**")
 
 @app.on_message(filters.document)
-async def handle(c, m):
+async def handle_document(c, m):
     mode = user_mode.get(m.from_user.id, "html")
     path = await m.download()
     
@@ -151,14 +162,18 @@ async def handle(c, m):
     elif mode == "domain":
         with open(path, "r", encoding="utf-8") as f: lines = f.readlines()
         with open(path, "w", encoding="utf-8") as f:
-            for l in lines: f.write(fix_domain(l))
+            for l in lines:
+                if ":" in l:
+                    nm, url = l.split(":", 1)
+                    f.write(f"{nm}: {fix_video_domain(url.strip())}\n")
+                else: f.write(l)
         out = path
-    else:
+    else: # Mode HTML
         with open(path, "r", encoding="utf-8") as f: html = generate_html(m.document.file_name, f.read())
         out = path.replace(".txt", ".html")
         with open(out, "w", encoding="utf-8") as f: f.write(html)
 
-    await m.reply_document(out, caption=f"✨ Processed by {BOT_OWNER_NAME}")
+    await m.reply_document(out, caption=f"✨ Done by {BOT_OWNER_NAME}")
     os.remove(path)
     if out != path: os.remove(out)
 
