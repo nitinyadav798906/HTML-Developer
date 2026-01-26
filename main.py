@@ -9,33 +9,30 @@ API_ID = 12475131
 API_HASH = "719171e38be5a1f500613837b79c536f"
 BOT_TOKEN = "8551687208:AAG0Vuuj3lyUhU1zClA_0C7VNS6pbhXUvsk"
 
-# Domain Changer Config
 OLD_DOMAINS = ["https://apps-s3-jw-prod.utkarshapp.com/", "https://apps-s3-prod.utkarshapp.com/", "https://apps-s3-video-dist.utkarshapp.com/"]
 NEW_DOMAIN = "https://d1q5ugnejk3zoi.cloudfront.net/ut-production-jw/"
 
-app = Client("domain_pro_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+app = Client("ultimate_option_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 user_mode = {}
 
-# Logic: Domain Badalne ke liye
 def fix_domain(url):
     for d in OLD_DOMAINS:
-        if d in url:
-            return url.replace(d, NEW_DOMAIN)
+        if d in url: return url.replace(d, NEW_DOMAIN)
     return url
 
-# Logic: HTML se wapas TXT nikalne ke liye
+# ================= 1. HTML TO TXT =================
 def html_to_txt(html_content):
-    matches = re.findall(r'onclick="window\.open\(\'(.*?)\'\)".*?>(.*?)</div>', html_content)
+    matches = re.findall(r'playVideo\(\'(.*?)\'', html_content) or re.findall(r'window\.open\(\'(.*?)\'\)', html_content)
+    names = re.findall(r'<div class="item-name".*?>(.*?)</div>', html_content)
     extracted = []
-    for url, name in matches:
-        clean_name = re.sub(r'[🎬📄🔗📂]', '', name).strip()
-        extracted.append(f"{clean_name}: {url}")
+    for u, n in zip(matches, names):
+        extracted.append(f"{n.strip()}: {u}")
     return "\n".join(extracted)
 
-# Logic: Professional HTML banane ke liye (Auto-Folder)
+# ================= 2. TXT TO HTML =================
 def generate_html(file_name, content):
     title = os.path.splitext(file_name)[0]
-    now = datetime.now().strftime("%d %b %Y, %I:%M %p")
+    now = datetime.now().strftime("%d %b %Y")
     lines = content.strip().split("\n")
     v_t, p_t = 0, 0
     folder_data = []
@@ -45,9 +42,8 @@ def generate_html(file_name, content):
         line = line.strip()
         if not line or "http" not in line: continue
         name, url = line.split(":", 1) if ":" in line else ("Class", line)
-        name, url = name.strip(), fix_domain(url.strip()) # Domain auto-change here
+        name, url = name.strip(), fix_domain(url.strip())
         
-        # 1-Count Detection for Folders
         if re.match(r'^(01|1)[\s\.\-]', name) or current_folder is None:
             if current_folder: folder_data.append(current_folder)
             f_name = re.sub(r'^(01|1)[\s\.\-]', '', name).strip()
@@ -65,12 +61,22 @@ def generate_html(file_name, content):
         html_folders += f'''
         <div class="folder" onclick="toggle('f-{idx}')">
             <span>📂 {f['name']}</span>
-            <span class="count">{len(f['items'])} Classes</span>
+            <span class="count-badge">{len(f['items'])}</span>
         </div>
         <div id="f-{idx}" class="content" style="display:none;">'''
         for i in f['items']:
             icon = "🎬" if i['type']=="video" else "📄"
-            html_folders += f'<div class="item" onclick="window.open(\'{i["url"]}\')">{icon} {i["name"]}</div>'
+            if i['type']=="video":
+                btn = f'''<div class="item">
+                            <div class="item-name">{icon} {i["name"]}</div>
+                            <div class="opt-btns">
+                                <button onclick="playVideo('{i['url']}')">▶️ Play</button>
+                                <button onclick="window.open('{i['url']}')">🔗 Link</button>
+                            </div>
+                          </div>'''
+            else:
+                btn = f'<div class="item" onclick="window.open(\'{i["url"]}\')">{icon} {i["name"]}</div>'
+            html_folders += btn
         html_folders += "</div>"
 
     return f"""
@@ -78,38 +84,60 @@ def generate_html(file_name, content):
 <html>
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
     <style>
-        body {{ font-family: sans-serif; background: #f0f2f5; margin: 0; padding-bottom: 40px; }}
-        .header {{ background: #fff; padding: 15px; text-align: center; border-bottom: 3px solid #007bff; position: sticky; top: 0; z-index: 100; }}
-        .folder {{ background: #fff; margin: 10px; padding: 15px; border-radius: 8px; font-weight: bold; display: flex; justify-content: space-between; cursor: pointer; border: 1px solid #ddd; }}
-        .count {{ background: #007bff; color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 11px; }}
-        .item {{ background: #fff; margin: 5px 15px; padding: 12px; border-radius: 5px; font-size: 13px; border-left: 4px solid #007bff; cursor: pointer; border-bottom: 1px solid #eee; }}
+        body {{ font-family: 'Poppins', sans-serif; background: #f8f9fa; margin: 0; padding-bottom: 70px; }}
+        .header {{ background: linear-gradient(135deg, #007bff, #00d2d3); color: white; padding: 25px 15px; text-align: center; border-radius: 0 0 25px 25px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }}
+        #player-container {{ display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 3000; }}
+        .close-p {{ position: absolute; top: 15px; right: 20px; color: white; font-size: 35px; cursor: pointer; z-index: 3001; }}
+        .folder {{ background: white; margin: 12px; padding: 18px; border-radius: 12px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #eee; }}
+        .count-badge {{ background: #007bff; color: white; padding: 2px 10px; border-radius: 20px; font-size: 11px; }}
+        .item {{ background: white; margin: 8px 15px; padding: 12px; border-radius: 10px; border-left: 5px solid #007bff; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }}
+        .opt-btns {{ display: flex; gap: 10px; margin-top: 8px; }}
+        .opt-btns button {{ flex: 1; padding: 8px; border: none; border-radius: 5px; background: #f0f2f5; font-weight: bold; cursor: pointer; }}
+        .item-name {{ font-size: 13px; font-weight: 600; }}
+        .search-box {{ width: 85%; padding: 12px; border: none; border-radius: 10px; margin: -20px auto 10px; display: block; box-shadow: 0 4px 10px rgba(0,0,0,0.1); outline: none; }}
     </style>
 </head>
 <body>
+    <div id="player-container"><span class="close-p" onclick="closePlayer()">&times;</span><video id="player" playsinline controls></video></div>
     <div class="header">
-        <h3 style="margin:0;">{title}</h3>
-        <div style="color:#007bff; font-size:12px; font-weight:bold;">🎥 {v_t} Videos | 📄 {p_t} PDFs</div>
-        <div style="font-size:10px; color:#888;">{now}</div>
+        <h2 style="margin:0;">{title}</h2>
+        <p style="font-size:12px; margin:5px 0;">🎥 {v_t} Videos | 📄 {p_t} PDFs</p>
+        <p style="font-size:10px; opacity:0.8;">Owner: {BOT_OWNER_NAME} | {now}</p>
     </div>
+    <input type="text" id="q" class="search-box" placeholder="Search lessons..." onkeyup="src()">
     {html_folders}
-    <div style="text-align:center; padding:20px; font-size:12px; color:#999;">Created By: {BOT_OWNER_NAME}</div>
+    <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <script>
+        const player = new Plyr('#player');
+        function playVideo(url) {{
+            document.getElementById('player-container').style.display = 'block';
+            if (url.includes('.m3u8')) {{ const hls = new Hls(); hls.loadSource(url); hls.attachMedia(document.getElementById('player')); }}
+            else {{ document.getElementById('player').src = url; }}
+            player.play();
+        }}
+        function closePlayer() {{ player.pause(); document.getElementById('player-container').style.display = 'none'; }}
         function toggle(id) {{ var e = document.getElementById(id); e.style.display = e.style.display === 'none' ? 'block' : 'none'; }}
+        function src() {{ 
+            var v = document.getElementById('q').value.toLowerCase(); 
+            document.querySelectorAll('.item').forEach(i => i.style.display = i.innerText.toLowerCase().includes(v) ? 'block' : 'none'); 
+        }}
     </script>
 </body>
 </html>
 """
 
-# ================= HANDLERS =================
+# ================= COMMANDS =================
 @app.on_message(filters.command("start"))
 async def start(c, m):
-    await m.reply_text(f"🚀 **Bot Mode: All-In-One**\nOwner: {BOT_OWNER_NAME}\n\nCommands:\n/html - TXT to HTML (Auto Domain Change)\n/txt - HTML to TXT\n/domain - Only Domain Changer (TXT to TXT)")
+    await m.reply_text(f"🚀 **{BOT_OWNER_NAME} Bot Active**\n\nCommands:\n/html - TXT to HTML\n/txt - HTML to TXT\n/domain - Only Change Domain")
 
 @app.on_message(filters.command(["html", "txt", "domain"]))
 async def mode(c, m):
     user_mode[m.from_user.id] = m.command[0]
-    await m.reply_text(f"✅ Mode Switched to: **{m.command[0].upper()}**")
+    await m.reply_text(f"✅ Mode Switched: **{m.command[0].upper()}**")
 
 @app.on_message(filters.document)
 async def handle(c, m):
@@ -117,21 +145,16 @@ async def handle(c, m):
     path = await m.download()
     
     if mode == "txt":
-        with open(path, "r", encoding="utf-8") as f:
-            data = html_to_txt(f.read())
+        with open(path, "r", encoding="utf-8") as f: data = html_to_txt(f.read())
         out = path.replace(".html", ".txt")
         with open(out, "w", encoding="utf-8") as f: f.write(data)
-    
     elif mode == "domain":
-        with open(path, "r", encoding="utf-8") as f:
-            lines = f.readlines()
+        with open(path, "r", encoding="utf-8") as f: lines = f.readlines()
         with open(path, "w", encoding="utf-8") as f:
             for l in lines: f.write(fix_domain(l))
         out = path
-        
-    else: # Default: HTML Mode (With Domain Change)
-        with open(path, "r", encoding="utf-8") as f:
-            html = generate_html(m.document.file_name, f.read())
+    else:
+        with open(path, "r", encoding="utf-8") as f: html = generate_html(m.document.file_name, f.read())
         out = path.replace(".txt", ".html")
         with open(out, "w", encoding="utf-8") as f: f.write(html)
 
