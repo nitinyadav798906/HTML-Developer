@@ -174,7 +174,7 @@ def generate_html(file_name, content, is_protected=False):
 async def handle_cmds(c, m):
     cmd = m.command[0]
     if cmd == "start":
-        return await m.reply_text(f"👑 **{BOT_OWNER_NAME} Bot Active**\n\n/html - Normal Dashboard\n/sky - Password Protected (7989)\n/txt - Link Extractor\n/stop - Reset Bot")
+        return await m.reply_text(f"👑 **{BOT_OWNER_NAME} Bot Active**\n\n/html - Normal Dashboard\n/sky - Password Protected\n/txt - Link Extractor\n/stop - Reset Bot")
     if cmd == "stop":
         user_mode.pop(m.from_user.id, None)
         return await m.reply_text("🛑 Process Stopped & Memory Cleared.")
