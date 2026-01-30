@@ -10,28 +10,27 @@ API_HASH = "719171e38be5a1f500613837b79c536f"
 BOT_TOKEN = "8551687208:AAG0Vuuj3lyUhU1zClA_0C7VNS6pbhXUvsk"
 SKY_PASSWORD = "7989" 
 
-OLD_DOMAINS = [
-    "https://apps-s3-jw-prod.utkarshapp.com/", 
-    "https://apps-s3-prod.utkarshapp.com/", 
-    "https://apps-s3-video-dist.utkarshapp.com/"
-]
+OLD_DOMAINS = ["https://apps-s3-jw-prod.utkarshapp.com/", "https://apps-s3-prod.utkarshapp.com/", "https://apps-s3-video-dist.utkarshapp.com/"]
 NEW_DOMAIN = "https://d1q5ugnejk3zoi.cloudfront.net/ut-production-jw/"
 
-app = Client("master_ultimate_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+app = Client("master_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 user_mode = {}
 
-# --- Helper: Fix Domains ---
+# --- Utility Functions ---
 def fix_domain(url):
     url = url.strip()
     for d in OLD_DOMAINS:
         if d in url: return url.replace(d, NEW_DOMAIN)
     return url
 
-# --- Helper: HTML to TXT (Reverse) ---
-def html_to_txt(content):
-    pattern = r"openModal\('([^']+)','([^']+)','[^']+'\)"
-    matches = re.findall(pattern, content)
-    return "\n".join([f"{m[1]}: {m[0]}" for m in matches])
+def get_clean_subject(text):
+    # Faltu symbols hatane ka logic
+    if "-" in text:
+        subject = text.split("-")[1].strip().split(" ")[0]
+    else:
+        subject = text.strip().split(" ")[0]
+    subject = re.sub(r'[^\w\u0900-\u097F]', '', subject)
+    return subject.upper() if len(subject) > 1 else "BATCH CONTENT"
 
 # ================= HTML GENERATOR =================
 def generate_html(file_name, content, is_protected=False):
@@ -40,26 +39,31 @@ def generate_html(file_name, content, is_protected=False):
     
     organized_data = {}
     for name, url in raw_lines:
-        clean_name = name.strip()
-        parts = clean_name.split('-')
-        # Auto-Detect Subject/Teacher Name
-        f_key = parts[1].strip().split(' ')[0] if len(parts) > 1 else "General"
-        f_key = re.sub(r'[0-9-]', '', f_key).strip() or "Batch Content"
-        
-        if f_key not in organized_data: organized_data[f_key] = []
-        organized_data[f_key].append((clean_name, fix_domain(url)))
+        folder = get_clean_subject(name)
+        if folder not in organized_data: organized_data[folder] = []
+        organized_data[folder].append((name.strip(), fix_domain(url)))
 
     folder_html = ""
     for f_name, items in sorted(organized_data.items()):
-        f_id = re.sub(r'\W+', '', f_name)
-        items_list = "".join([
-            f'<div class="list-item" onclick="openModal(\'{u}\', \'{n}\', \'{"VIDEO" if any(x in u.lower() for x in [".m3u8",".mp4"]) else "PDF"}\')">'
-            f'<div class="item-icon-bg">{"📽️" if any(x in u.lower() for x in [".m3u8",".mp4"]) else "📄"}</div>'
-            f'<div class="item-title">{n}</div></div>' for n, u in items
-        ])
-        folder_html += f'<div class="folder-card"><div class="folder-header" onclick="toggleFolder(\'{f_id}\')"><span>📂 {f_name.upper()} ({len(items)})</span><span id="icon-{f_id}">➕</span></div><div id="{f_id}" class="folder-content">{items_list}</div></div>'
+        f_id = "".join(filter(str.isalnum, f_name))
+        items_list = ""
+        for n, u in items:
+            t = "VIDEO" if any(x in u.lower() for x in [".m3u8", ".mp4", ".mpd"]) else "PDF"
+            item_id = "".join(filter(str.isalnum, n))[:15]
+            items_list += f'''
+            <div class="list-item">
+                <div class="info" onclick="openP('{u}', '{n}', '{t}')">
+                    <span>{"📽️" if t=="VIDEO" else "📄"}</span>
+                    <span class="name">{n}</span>
+                </div>
+                <div class="btns">
+                    <a href="{u}" download>📥</a>
+                    <span class="fav" onclick="fav('{item_id}','{u}','{n}','{t}')">🤍</span>
+                </div>
+            </div>'''
+        folder_html += f'<div class="f-card"><div class="f-head" onclick="tg(\'{f_id}\')">📂 {f_name} ({len(items)})</div><div id="{f_id}" class="f-cont">{items_list}</div></div>'
 
-    pass_js = f'let p=prompt("🔐 Enter Key:"); if(p!=="{SKY_PASSWORD}")document.body.innerHTML="<h1>Denied</h1>";' if is_protected else ""
+    pass_check = f'let p=prompt("🔐 Key:"); if(p!=="{SKY_PASSWORD}")document.body.innerHTML="<h1>Denied</h1>";' if is_protected else ""
 
     return f"""
 <!DOCTYPE html>
@@ -68,96 +72,82 @@ def generate_html(file_name, content, is_protected=False):
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
     <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
     <style>
-        :root {{ --p: #8e44ad; --bg: #f4f7f6; --c: #fff; }}
-        body {{ font-family: sans-serif; background: var(--bg); margin: 0; padding-bottom: 20px; }}
-        .header {{ background: var(--c); padding: 15px; text-align: center; border-bottom: 3px solid var(--p); position: sticky; top:0; z-index:100; }}
-        .folder-card {{ background: var(--c); margin: 10px 15px; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }}
-        .folder-header {{ background: var(--p); color: white; padding: 12px 15px; cursor: pointer; display: flex; justify-content: space-between; font-weight: bold; }}
-        .folder-content {{ display: none; padding: 5px 0; }}
-        .list-item {{ background: var(--c); margin: 5px 10px; padding: 10px; border-radius: 8px; display: flex; align-items: center; border-bottom: 1px solid #eee; cursor: pointer; }}
-        .modal {{ display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:999; align-items:center; justify-content:center; }}
-        .m-body {{ background: var(--c); width: 95%; max-width: 650px; border-radius: 12px; overflow: hidden; position: relative; }}
-        #watermark {{ position: absolute; color: rgba(255,255,255,0.2); font-size: 14px; pointer-events: none; z-index: 1001; font-weight: bold; }}
+        body {{ font-family: sans-serif; background: #f4f7f6; margin: 0; }}
+        .nav {{ background: #6c5ce7; color: #fff; padding: 15px; text-align: center; position: sticky; top:0; z-index:100; }}
+        .f-card {{ background: #fff; margin: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }}
+        .f-head {{ padding: 12px; cursor: pointer; font-weight: bold; border-bottom: 1px solid #eee; }}
+        .f-cont {{ display: none; background: #fafafa; }}
+        .list-item {{ display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; }}
+        .info {{ flex: 1; cursor: pointer; font-size: 13px; }}
+        .btns {{ display: flex; gap: 12px; font-size: 18px; }}
+        .btns a {{ text-decoration: none; }}
+        #vMod {{ display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:#000; z-index:1000; align-items:center; justify-content:center; }}
+        #wm {{ position: absolute; color: rgba(255,255,255,0.3); font-size: 14px; z-index: 1001; pointer-events: none; }}
     </style>
 </head>
 <body>
-    <div id="vModal" class="modal">
-        <div class="m-body">
-            <div id="watermark">{BOT_OWNER_NAME}</div>
-            <div style="padding:10px; display:flex; justify-content:space-between; border-bottom:1px solid #eee;">
-                <b id="mT" style="font-size:11px;">Player</b><span onclick="closeModal()" style="cursor:pointer; font-size:24px;">&times;</span>
-            </div>
-            <div style="position:relative; background:#000;">
-                <video id="player" playsinline controls></video>
-                <div style="position:absolute; top:40%; left:10px; z-index:10;"><button onclick="player.rewind(10)" style="background:rgba(0,0,0,0.5); color:white; border:none; border-radius:50%; width:40px; height:40px;">⏪</button></div>
-                <div style="position:absolute; top:40%; right:10px; z-index:10;"><button onclick="player.forward(10)" style="background:rgba(0,0,0,0.5); color:white; border:none; border-radius:50%; width:40px; height:40px;">⏩</button></div>
-            </div>
-            <div style="display:flex; justify-content:space-around; padding:10px; background:#eee;">
-                <button onclick="player.speed = 1">1x</button><button onclick="player.speed = 1.5">1.5x</button><button onclick="player.speed = 2">2x</button><button onclick="player.requestPictureInPicture()">📺 PiP</button>
-            </div>
-        </div>
-    </div>
-    <div class="header"><h2 style="font-size:16px; margin:0; color:var(--p);">{title}</h2><small>{datetime.now().strftime("%d %b %Y")}</small></div>
-    <div style="padding:15px;"><input type="text" id="sr" placeholder="Search..." onkeyup="search()" style="width:100%; padding:12px; border-radius:10px; border:1px solid #ddd;"></div>
-    <div id="fd">{folder_html}</div>
+    <div id="vMod"><div style="width:100%; max-width:700px; position:relative;">
+        <div id="wm">{BOT_OWNER_NAME}</div>
+        <span onclick="closeP()" style="color:#fff; font-size:30px; position:absolute; top:-40px; right:0; cursor:pointer;">&times;</span>
+        <video id="player" playsinline controls></video>
+    </div></div>
+    <div class="nav"><h3>{title}</h3></div>
+    {folder_html}
     <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <script>
-        {pass_js}
+        {pass_check}
         const player = new Plyr('#player'); let hls = new Hls();
-        function toggleFolder(id) {{ const el=document.getElementById(id); el.style.display = el.style.display==='block'?'none':'block'; }}
-        function openModal(u, n, t) {{
+        function tg(id) {{ const el=document.getElementById(id); el.style.display=el.style.display==='block'?'none':'block'; }}
+        function openP(u, n, t) {{
             if(t==='VIDEO') {{
-                document.getElementById('vModal').style.display='flex'; document.getElementById('mT').innerText=n;
-                if(u.includes('.m3u8')) {{ hls.loadSource(u); hls.attachMedia(document.getElementById('player')); }} else {{ document.getElementById('player').src=u; }}
-                player.play(); setInterval(()=>{{ document.getElementById('watermark').style.top=Math.random()*70+10+"%"; document.getElementById('watermark').style.left=Math.random()*70+10+"%"; }},5000);
+                document.getElementById('vMod').style.display='flex';
+                if(u.includes('.m3u8')) {{ hls.loadSource(u); hls.attachMedia(document.getElementById('player')); }}
+                else {{ document.getElementById('player').src=u; }}
+                player.play(); setInterval(()=>{{
+                    document.getElementById('wm').style.top=Math.random()*80+5+"%";
+                    document.getElementById('wm').style.left=Math.random()*80+5+"%";
+                }}, 3000);
             }} else {{ window.open(u); }}
         }}
-        function closeModal() {{ player.pause(); hls.detachMedia(); document.getElementById('vModal').style.display='none'; }}
-        function search() {{
-            let v=document.getElementById('sr').value.toLowerCase();
-            document.querySelectorAll('.list-item').forEach(i=>i.style.display=i.innerText.toLowerCase().includes(v)?'flex':'none');
-            if(v.length>0) document.querySelectorAll('.folder-content').forEach(f=>f.style.display="block");
-        }}
+        function closeP() {{ player.pause(); document.getElementById('vMod').style.display='none'; }}
     </script>
 </body>
 </html>
 """
 
-# ================= COMMANDS =================
+# ================= BOT HANDLERS =================
 @app.on_message(filters.command(["start", "html", "sky", "domain", "txt"]))
-async def cmds(c, m):
+async def start_handler(c, m):
     cmd = m.command[0]
     if cmd == "start":
-        return await m.reply_text(f"👑 **{BOT_OWNER_NAME} Bot**\n\n/domain - TXT to TXT (Update)\n/html - TXT to HTML\n/sky - Password Lock\n/txt - HTML to TXT")
+        return await m.reply_text("👑 **Master Bot**\n/domain - Update TXT\n/html - Folders\n/sky - Password\n/txt - Reverse")
     user_mode[m.from_user.id] = cmd
-    await m.reply_text(f"✅ Mode: **{cmd.upper()}**\nFile Bhejo!")
+    await m.reply_text(f"✅ Mode: **{cmd.upper()}** - Bhejo file!")
 
 @app.on_message(filters.document)
-async def process(c, m):
-    uid = m.from_user.id
-    mode = user_mode.get(uid)
+async def file_handler(c, m):
+    mode = user_mode.get(m.from_user.id)
     if not mode: return await m.reply_text("Pehle mode select karo!")
     
     path = await m.download()
     with open(path, "r", encoding="utf-8") as f: content = f.read()
 
     if mode == "txt":
-        result = html_to_txt(content)
-        out = "Reverse_Links.txt"
-        with open(out, "w", encoding="utf-8") as f: f.write(result)
-        await m.reply_document(out, caption="✅ HTML to TXT Done!")
+        matches = re.findall(r"openP\('([^']+)','([^']+)','[^']+'\)", content)
+        out = "Links_Extracted.txt"
+        with open(out, "w", encoding="utf-8") as f:
+            for u, n in matches: f.write(f"{n}: {u}\n")
     elif mode == "domain":
         lines = re.findall(r"([^:\n]+):?\s*(https?://[^\s\n]+)", content)
         out = "Updated_Links.txt"
         with open(out, "w", encoding="utf-8") as f:
             for n, u in lines: f.write(f"{n.strip()}: {fix_domain(u)}\n")
-        await m.reply_document(out, caption="✅ TXT Domain Update Done!")
     else:
         out = path.split('.')[0] + ".html"
         with open(out, "w", encoding="utf-8") as f: f.write(generate_html(m.document.file_name, content, (mode=="sky")))
-        await m.reply_document(out, caption="📂 Dashboard Ready!")
 
+    await m.reply_document(out)
     os.remove(path); os.remove(out)
 
 app.run()
