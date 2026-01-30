@@ -14,7 +14,7 @@ SKY_PASSWORD = "7989"
 OLD_DOMAINS = ["https://apps-s3-jw-prod.utkarshapp.com/", "https://apps-s3-prod.utkarshapp.com/", "https://apps-s3-video-dist.utkarshapp.com/"]
 NEW_DOMAIN = "https://d1q5ugnejk3zoi.cloudfront.net/ut-production-jw/"
 
-app = Client("ultimate_final_pip", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+app = Client("ultimate_login_fix", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 user_mode = {}
 
 def fix_domain(url):
@@ -62,24 +62,26 @@ def generate_html(file_name, content, is_protected=False):
 
     js_playlist = json.dumps(playlist_data)
 
-    # === STRONG SECURITY ===
-    # CSS se default hide kar diya hai. JS tab tak unhide nahi karega jab tak password sahi na ho.
-    security_css = ""
-    security_js = "document.getElementById('app-wrapper').style.display = 'block';" 
+    # === NEW LOGIN SYSTEM ===
+    # Default: Content Hidden, Login Screen Hidden (unless protected)
+    login_html = ""
+    security_script = "document.getElementById('app-wrapper').style.display = 'block';" # Default Unlocked
     
     if is_protected:
-        security_css = """
-        #app-wrapper { display: none !important; } 
-        body { background: #000; }
+        # Show Login Screen by default, Hide App
+        security_script = """
+        document.getElementById('login-screen').style.display = 'flex';
         """
-        security_js = f"""
-        let pass = prompt("🔐 Protected File. Enter Password:");
-        if(pass === "{SKY_PASSWORD}") {{
-            document.body.style.background = "#f3f4f6";
-            document.getElementById('app-wrapper').style.display = 'block';
-        }} else {{
-            document.body.innerHTML = "<div style='display:flex;height:100vh;justify-content:center;align-items:center;background:#000;color:#ff4d4d;font-family:sans-serif;flex-direction:column;text-align:center;'><h1>🚫 ACCESS DENIED</h1><p>Incorrect Password</p><button onclick='location.reload()' style='padding:10px 20px;cursor:pointer;background:#333;color:white;border:none;border-radius:5px;'>Try Again</button></div>";
-        }}
+        login_html = f"""
+        <div id="login-screen">
+            <div class="login-box">
+                <h3>🔒 Restricted Access</h3>
+                <p>Please enter the access key to view this content.</p>
+                <input type="password" id="passInput" placeholder="Enter Password">
+                <button onclick="checkPass()">Unlock</button>
+                <p id="errMsg" style="color:#ef4444; font-size:12px; margin-top:10px;"></p>
+            </div>
+        </div>
         """
 
     return f"""
@@ -95,7 +97,15 @@ def generate_html(file_name, content, is_protected=False):
         :root {{ --bg: #f3f4f6; --card-bg: #ffffff; --primary: #2563eb; --text: #1f2937; }}
         body {{ font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 80px; }}
         
-        {security_css}
+        #app-wrapper {{ display: none; }} /* Hidden by default for security */
+
+        /* LOGIN SCREEN STYLES */
+        #login-screen {{ position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f3f4f6; z-index: 5000; display: none; justify-content: center; align-items: center; }}
+        .login-box {{ background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; width: 90%; max-width: 350px; }}
+        .login-box h3 {{ margin-top: 0; color: #1f2937; }}
+        .login-box input {{ width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; outline: none; }}
+        .login-box button {{ width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }}
+        .login-box button:hover {{ opacity: 0.9; }}
 
         /* HEADER */
         .header {{ background: #fff; padding: 15px; position: sticky; top: 0; z-index: 50; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }}
@@ -123,7 +133,7 @@ def generate_html(file_name, content, is_protected=False):
         .progress-fill {{ height: 100%; background: var(--primary); width: 0%; }}
         .item-card.watched .status-icon::after {{ content: '✅'; margin-left: 10px; }}
 
-        /* === DARK PLAYER MODAL + MINIMIZE === */
+        /* PLAYER MODAL */
         .modal {{ display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; align-items: center; justify-content: center; flex-direction: column; transition: 0.3s; }}
         .modal-content {{ width: 100%; max-width: 900px; position: relative; transition: 0.3s; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }}
         
@@ -139,7 +149,6 @@ def generate_html(file_name, content, is_protected=False):
         .pdf-frame {{ width: 100%; height: 80vh; border: none; background: #fff; }}
         .view-img {{ max-width: 100%; max-height: 80vh; object-fit: contain; }}
 
-        /* DARK CONTROLS */
         .controls-row {{ 
             display: flex; gap: 10px; justify-content: center; padding: 15px; 
             background: #000; flex-wrap: wrap; width: 100%;
@@ -152,22 +161,9 @@ def generate_html(file_name, content, is_protected=False):
         .c-btn:hover {{ background: #333; }}
         .c-btn.primary {{ background: var(--primary); border-color: var(--primary); }}
 
-        /* MINIMIZED MODE STYLES */
-        body.minimized .modal {{
-            background: transparent !important;
-            pointer-events: none;
-            justify-content: flex-end;
-            align-items: flex-end;
-            padding: 20px;
-        }}
-        body.minimized .modal-content {{
-            pointer-events: auto;
-            width: 300px !important;
-            border: 1px solid #444;
-            border-radius: 12px;
-            overflow: hidden;
-            margin-bottom: 60px;
-        }}
+        /* MINIMIZED MODE */
+        body.minimized .modal {{ background: transparent !important; pointer-events: none; justify-content: flex-end; align-items: flex-end; padding: 20px; }}
+        body.minimized .modal-content {{ pointer-events: auto; width: 300px !important; border: 1px solid #444; border-radius: 12px; overflow: hidden; margin-bottom: 60px; }}
         body.minimized .controls-row {{ display: none; }}
         body.minimized .pdf-frame, body.minimized .view-img {{ display: none !important; }}
         body.minimized #playerTitle {{ font-size: 12px; }}
@@ -178,6 +174,8 @@ def generate_html(file_name, content, is_protected=False):
     </style>
 </head>
 <body>
+    {login_html}
+
     <div id="app-wrapper">
         <div class="header">
             <div><h2>{title}</h2><small style="color:#666">{len(raw_lines)} Items</small></div>
@@ -208,11 +206,9 @@ def generate_html(file_name, content, is_protected=False):
 
                 <div class="media-box">
                     <div id="watermark">{BOT_OWNER_NAME}</div>
-                    
                     <div id="vidContainer" style="width:100%; position:relative; display:none;">
                         <video id="player" playsinline controls style="width:100%;"></video>
                     </div>
-
                     <iframe id="pdfFrame" class="pdf-frame" style="display:none;"></iframe>
                     <img id="imgView" class="view-img" style="display:none;">
                 </div>
@@ -232,7 +228,20 @@ def generate_html(file_name, content, is_protected=False):
     <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <script>
-        {security_js} // Strong Security Check
+        // LOGIN LOGIC
+        function checkPass() {{
+            const input = document.getElementById('passInput').value;
+            const errMsg = document.getElementById('errMsg');
+            if(input === "{SKY_PASSWORD}") {{
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('app-wrapper').style.display = 'block';
+            }} else {{
+                errMsg.innerText = "❌ Incorrect Password!";
+            }}
+        }}
+
+        // AUTO EXECUTE IF NOT PROTECTED
+        {security_script}
 
         const playlist = {js_playlist};
         let currentIndex = -1;
@@ -261,7 +270,7 @@ def generate_html(file_name, content, is_protected=False):
             document.querySelectorAll('.item-card').forEach(el => el.classList.remove('active-playing'));
             document.getElementById(`item-${{index}}`).classList.add('active-playing');
             
-            if(isMinimized) toggleMinimize(); // Maximize if minimized
+            if(isMinimized) toggleMinimize();
 
             const modal = document.getElementById('vModal');
             document.getElementById('playerTitle').innerText = item.name;
@@ -290,7 +299,8 @@ def generate_html(file_name, content, is_protected=False):
         }}
 
         function setupVideo(item) {{
-            document.getElementById('vidContainer').style.display = 'block';
+            const vidContainer = document.getElementById('vidContainer');
+            vidContainer.style.display = 'block';
             document.getElementById('vidControls').style.display = 'flex';
             
             if (Hls.isSupported() && item.url.includes('.m3u8')) {{
@@ -370,7 +380,7 @@ def generate_html(file_name, content, is_protected=False):
 async def handle_cmds(c, m):
     cmd = m.command[0]
     if cmd == "start":
-        return await m.reply_text(f"📉 **Ultimate Bot + PiP**\n\n/html - Normal\n/sky - Password (7989)\n/txt - Links")
+        return await m.reply_text(f"🛠️ **Login Page Fixed**\n\n/html - Normal\n/sky - Login Protected \n/txt - Links")
     if cmd == "stop":
         user_mode.pop(m.from_user.id, None)
         return await m.reply_text("🛑 Reset.")
@@ -381,7 +391,7 @@ async def handle_cmds(c, m):
 async def process_file(c, m):
     uid = m.from_user.id
     mode = user_mode.get(uid)
-    if not mode: return await m.reply_text("⚠️ Select mode first!")
+    if not mode: return await m.reply_text("⚠️ Mode Select Karo!")
     
     msg = await m.reply_text("🔄 Processing...")
     path = await m.download()
@@ -392,9 +402,9 @@ async def process_file(c, m):
 
     if mode in ["html", "sky"]:
         html_data = generate_html(m.document.file_name, content, is_protected=(mode=="sky"))
-        out_path = path.rsplit('.', 1)[0] + "_PiP.html"
+        out_path = path.rsplit('.', 1)[0] + "_FixedLogin.html"
         with open(out_path, "w", encoding="utf-8") as f: f.write(html_data)
-        cap = "📉 **PiP Enabled + Strong Security**\nMinimize Button (📉) Added!"
+        cap = "✅ **Blank Screen Fixed**\nUse Password: 7989"
     
     elif mode == "txt":
         links = re.findall(r"(https?://[^\s\n]+)", content)
@@ -407,5 +417,5 @@ async def process_file(c, m):
     if os.path.exists(path): os.remove(path)
     if os.path.exists(out_path): os.remove(out_path)
 
-print("📉 ab kya meri gand mar ke jayega chla ja bsdk..")
+print("✅ Login Fix Bot Started...")
 app.run()
