@@ -7,12 +7,13 @@ from pyrogram import Client, filters
 # ================= CONFIGURATION =================
 BOT_OWNER_NAME = "Sachin & Nitin"
 TELEGRAM_LINK = "https://t.me/Raftaarss_don" 
-API_ID = 12475131
-API_HASH = "719171e38be5a1f500613837b79c536f"
-BOT_TOKEN = "8551687208:AAG0Vuuj3lyUhU1zClA_0C7VNS6pbhXUvsk"
-SKY_PASSWORD = "7989"
+API_ID = 12475131       
+API_HASH = "719171e38be5a1f500613837b79c536f"   
+BOT_TOKEN = "8551687208:AAG0Vuuj3lyUhU1zClA_0C7VNS6pbhXUvsk" 
+SKY_PASSWORD = "7989"   
 
-app = Client("ultimate_final_ver", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+app = Client("ultimate_fixed_commands", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+user_mode = {}
 
 # ================= HTML GENERATOR =================
 def generate_html(file_name, content, is_protected=False):
@@ -23,7 +24,6 @@ def generate_html(file_name, content, is_protected=False):
     items_html = ""
     playlist_data = []
 
-    # 4K Nature Posters
     posters = [
         "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=500&q=80",
         "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=500&q=80",
@@ -35,7 +35,6 @@ def generate_html(file_name, content, is_protected=False):
         url = url.strip()
         low_u = url.lower()
         
-        # CATEGORIES
         if any(x in low_u for x in [".m3u8", ".mpd", ".mp4", ".mkv"]): 
             t = "VIDEO"; v_c += 1; icon = "🎥"
         elif ".pdf" in low_u: 
@@ -64,7 +63,6 @@ def generate_html(file_name, content, is_protected=False):
 
     js_playlist = json.dumps(playlist_data)
 
-    # LOGIN SCREEN
     login_html = ""
     security_script = "document.getElementById('app-wrapper').style.display = 'block';" 
     if is_protected:
@@ -88,15 +86,10 @@ def generate_html(file_name, content, is_protected=False):
     <title>{title}</title>
     <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    
     <style>
-        /* CONFIG */
         :root {{ --red: #ef4444; --green: #10b981; --orange: #f59e0b; }}
-        
-        /* THEMES */
         [data-theme="dark"] {{ --bg: #0f172a; --card-bg: #1e293b; --text: #f8fafc; --text-sec: #94a3b8; --border: #334155; --modal-bg: #000; }}
         [data-theme="light"] {{ --bg: #f8fafc; --card-bg: #ffffff; --text: #1e293b; --text-sec: #64748b; --border: #e2e8f0; --modal-bg: #fff; }}
-        
         [data-color="blue"] {{ --primary: #3b82f6; }}
         [data-color="red"] {{ --primary: #ef4444; }}
         [data-color="green"] {{ --primary: #22c55e; }}
@@ -109,13 +102,11 @@ def generate_html(file_name, content, is_protected=False):
         * {{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }}
         #app-wrapper {{ display: none; }} 
 
-        /* LOGIN */
         #login-screen {{ position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 9999; display: none; justify-content: center; align-items: center; }}
         .login-box {{ background: var(--card-bg); padding: 25px; border-radius: 12px; width: 85%; max-width: 300px; border: 1px solid var(--border); text-align: center; }}
         .login-box input {{ width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text); outline: none; }}
         .login-box button {{ width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }}
 
-        /* HEADER */
         .header {{ background: var(--card-bg); padding: 15px; position: sticky; top: 0; z-index: 50; border-bottom: 1px solid var(--border); }}
         .h-top {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }}
         .h-title {{ margin: 0; font-size: 16px; font-weight: 700; color: var(--primary); }}
@@ -127,23 +118,19 @@ def generate_html(file_name, content, is_protected=False):
         .t-dot {{ width: 22px; height: 22px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: 0.2s; flex-shrink: 0; }}
         .t-dot:hover {{ transform: scale(1.2); }}
 
-        /* FILTERS */
         .stats-container {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 15px; }}
         .stat-card {{ background: var(--card-bg); padding: 10px 5px; border-radius: 8px; text-align: center; cursor: pointer; border: 1px solid var(--border); transition: 0.2s; }}
         .stat-num {{ font-size: 14px; font-weight: 800; display: block; }}
         .stat-label {{ font-size: 9px; font-weight: 600; text-transform: uppercase; margin-top: 2px; color: var(--text-sec); }}
-        
         .sc-fav {{ color: var(--red); border-color: var(--red); }}
         .sc-vid {{ color: var(--primary); }}
         .sc-aud {{ color: var(--orange); }}
         .sc-pdf {{ color: var(--green); }}
 
-        /* LIST */
         .list-container {{ padding: 0 15px; }}
         .search-box {{ display: flex; align-items: center; background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; }}
         .search-bar {{ width: 100%; padding: 12px; border: none; background: transparent; color: var(--text); outline: none; }}
         .clear-search {{ padding: 0 12px; cursor: pointer; display: none; color: var(--text-sec); }}
-        
         .list-item {{ background: var(--card-bg); margin-bottom: 8px; border-radius: 8px; padding: 12px; display: flex; align-items: center; border: 1px solid var(--border); cursor: pointer; }}
         .item-icon-box {{ width: 40px; height: 40px; background: rgba(100,100,100,0.1); border-radius: 8px; display: flex; justify-content: center; align-items: center; margin-right: 12px; font-size: 18px; }}
         .item-info {{ flex-grow: 1; min-width: 0; }}
@@ -152,11 +139,10 @@ def generate_html(file_name, content, is_protected=False):
         .meta-tag {{ font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: bold; background: rgba(100,100,100,0.1); }}
         .tag-VIDEO {{ color: var(--primary); }} .tag-PDF {{ color: var(--green); }} .tag-AUDIO {{ color: var(--orange); }}
 
-        /* PLAYER OVERLAY & UI */
         .cinema-modal, .player-overlay {{ display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 3000; }}
         .player-overlay {{ z-index: 4000; background: black; flex-direction: column; }}
         
-        .bg-layer {{ position: absolute; top: 0; left: 0; width: 100%; height: 60%; background-size: cover; background-position: center; mask-image: linear-gradient(to bottom, black 20%, transparent 100%); opacity: 0.6; }}
+        .bg-layer {{ position: absolute; top: 0; left: 0; width: 100%; height: 60%; background-size: cover; background-position: center; mask-image: linear-gradient(to bottom, black 20%, transparent 100%); -webkit-mask-image: linear-gradient(to bottom, black 20%, transparent 100%); opacity: 0.6; }}
         .cinema-content {{ position: absolute; bottom: 0; width: 100%; height: 60%; padding: 20px; background: linear-gradient(to top, #000 20%, transparent); display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 15px; }}
         .c-poster {{ width: 120px; height: 180px; border-radius: 8px; object-fit: cover; box-shadow: 0 5px 20px black; border: 1px solid rgba(255,255,255,0.2); }}
         .c-title {{ font-size: 20px; font-weight: 800; color: white; text-align: center; margin: 0; }}
@@ -164,10 +150,7 @@ def generate_html(file_name, content, is_protected=False):
         .btn-main {{ background: var(--primary); color: white; }}
         .btn-sub {{ background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(5px); }}
 
-        /* WATERMARK */
         .watermark {{ position: absolute; top: 15px; right: 60px; color: rgba(255,255,255,0.4); font-weight: 900; font-size: 16px; pointer-events: none; z-index: 55; text-shadow: 0 2px 5px black; }}
-        
-        /* RED BAR & GESTURES */
         .red-bar-box {{ position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; display: flex; justify-content: center; align-items: center; }}
         .red-bar {{ width: 50px; height: 0%; background: linear-gradient(to top, rgba(255,0,0,0.8), transparent); box-shadow: 0 0 40px #ff0000; opacity: 0; transition: height 0.1s; border-radius: 20px; }}
         .gesture-val {{ position: absolute; color: white; font-weight: bold; font-size: 30px; opacity: 0; z-index: 60; top: 40%; left: 50%; transform: translateX(-50%); text-shadow: 0 0 10px black; }}
@@ -182,22 +165,11 @@ def generate_html(file_name, content, is_protected=False):
         .sm-item {{ display: flex; flex-direction: column; gap: 5px; }}
         .sm-label {{ font-size: 12px; color: #aaa; text-transform: uppercase; }}
         .sm-select {{ background: #333; color: white; border: none; padding: 8px; border-radius: 4px; font-size: 14px; }}
-        
-        /* CLEAN BOX */
         .clean-btn {{ background: #ef4444; color: white; border: none; padding: 8px; width: 100%; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 5px; }}
-        
         .lock-icon {{ position: absolute; bottom: 30px; right: 20px; color: white; background: rgba(255,255,255,0.2); padding: 12px; border-radius: 50%; cursor: pointer; z-index: 65; font-size: 18px; }}
         
-        /* MINIMIZE (PiP) */
-        body.minimized .player-overlay {{
-            width: 320px !important; height: 180px !important; 
-            top: auto !important; left: auto !important; bottom: 20px !important; right: 20px !important;
-            border-radius: 12px; border: 2px solid var(--primary); box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-        }}
-        body.minimized .bottom-controls, body.minimized .settings-menu, 
-        body.minimized .lock-icon, body.minimized .watermark, body.minimized .red-bar-box, 
-        body.minimized .gesture-val {{ display: none !important; }}
-        
+        body.minimized .player-overlay {{ width: 320px !important; height: 180px !important; top: auto !important; left: auto !important; bottom: 20px !important; right: 20px !important; border-radius: 12px; border: 2px solid var(--primary); box-shadow: 0 10px 40px rgba(0,0,0,0.5); }}
+        body.minimized .bottom-controls, body.minimized .settings-menu, body.minimized .lock-icon, body.minimized .watermark, body.minimized .red-bar-box, body.minimized .gesture-val {{ display: none !important; }}
         body.minimized .player-header {{ padding: 5px; }}
         body.minimized #pTitle {{ font-size: 10px; white-space: nowrap; }}
         body.minimized .player-mid {{ pointer-events: none; }} 
@@ -220,7 +192,6 @@ def generate_html(file_name, content, is_protected=False):
                     <span class="mode-btn" onclick="toggleMode()">🌓</span>
                 </div>
             </div>
-            
             <div class="theme-row">
                 <div class="t-dot" style="background:#3b82f6" onclick="setTheme('blue')"></div>
                 <div class="t-dot" style="background:#ef4444" onclick="setTheme('red')"></div>
@@ -362,7 +333,7 @@ def generate_html(file_name, content, is_protected=False):
         }};
 
         function cleanAllData() {{
-            if(confirm("Are you sure you want to clear all Watch History & Favorites?")) {{
+            if(confirm("Clear all Watch History & Favorites?")) {{
                 localStorage.clear();
                 location.reload();
             }}
@@ -429,12 +400,10 @@ def generate_html(file_name, content, is_protected=False):
             if(isLocked) return;
             e.preventDefault();
             const delta = startY - e.touches[0].clientY;
-            
             redBar.style.opacity = '1';
             let h = Math.abs(delta) * 0.5; if(h>100) h=100;
             redBar.style.height = h + "%";
             gVal.style.opacity = '1';
-
             if(e.touches[0].clientX > window.innerWidth / 2) {{
                 let change = delta / 500; 
                 let newVol = Math.min(Math.max(player.volume + change, 0), 1);
@@ -458,9 +427,8 @@ def generate_html(file_name, content, is_protected=False):
             document.querySelector('.lock-icon').innerText = isLocked ? '🔒' : '🔓';
             document.getElementById('extControls').style.display = isLocked ? 'none' : 'flex';
         }}
-        function toggleMinimize() {{
-            document.body.classList.toggle('minimized');
-        }}
+        function toggleMinimize() {{ document.body.classList.toggle('minimized'); }}
+        
         function toggleFav(btnId) {{
             const url = playlist[currentIndex].url;
             if(localStorage.getItem('fav_'+url)) {{
@@ -516,23 +484,28 @@ def generate_html(file_name, content, is_protected=False):
 </html>
 """
 
-# ================= TELEGRAM HANDLER =================
-@app.on_message(filters.command(["start", "stop", "html", "sky", "txt"]))
+# ================= HANDLERS =================
+@app.on_message(filters.command(["start", "help", "html", "sky", "txt", "stop"]))
 async def handle_cmds(c, m):
+    print(f"Command received: {m.text}")
     cmd = m.command[0]
+    
     if cmd == "start":
-        return await m.reply_text(f"🚀 **Bot Online**\n\n/html - Generate\n/sky - Secured\n/txt - Links")
-    if cmd == "stop":
+        await m.reply_text("👋 Welcome! Select a mode:\n/html\n/sky\n/txt")
+    elif cmd == "help":
+        await m.reply_text("💡 Help:\n/html - Standard\n/sky - Password\n/stop - Reset")
+    elif cmd == "stop":
         user_mode.pop(m.from_user.id, None)
-        return await m.reply_text("🛑 Reset.")
-    user_mode[m.from_user.id] = cmd
-    await m.reply_text(f"✅ Mode: {cmd.upper()}\nFile bhejo!")
+        await m.reply_text("🛑 Stopped.")
+    elif cmd in ["html", "sky", "txt"]:
+        user_mode[m.from_user.id] = cmd
+        await m.reply_text(f"✅ Mode Set: {cmd.upper()}\n📄 Send file now!")
 
 @app.on_message(filters.document)
 async def process_file(c, m):
     uid = m.from_user.id
     mode = user_mode.get(uid)
-    if not mode: return await m.reply_text("⚠️ Select mode!")
+    if not mode: return await m.reply_text("⚠️ Select mode first!")
     
     msg = await m.reply_text("🔄 Processing...")
     path = await m.download()
@@ -545,13 +518,13 @@ async def process_file(c, m):
         html_data = generate_html(m.document.file_name, content, is_protected=(mode=="sky"))
         out_path = path.rsplit('.', 1)[0] + "_Final.html"
         with open(out_path, "w", encoding="utf-8") as f: f.write(html_data)
-        cap = "✅ **Ultimate Dashboard**\nClean Box, Clear Search, Watermark, PiP Added!"
+        cap = "✅ **Dashboard Ready!**"
     
     elif mode == "txt":
         links = re.findall(r"(https?://[^\s\n]+)", content)
         out_path = path.rsplit('.', 1)[0] + "_links.txt"
         with open(out_path, "w", encoding="utf-8") as f: f.write("\n".join(links))
-        cap = f"📄 Links: {len(links)}"
+        cap = f"📄 Extracted {len(links)} Links"
 
     await m.reply_document(out_path, caption=cap)
     await msg.delete()
