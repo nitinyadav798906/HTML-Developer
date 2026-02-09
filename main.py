@@ -2,17 +2,21 @@ import os
 import re
 import json
 import random
-from pyrogram import Client, filters
+import asyncio
+from pyrogram import Client, filters, idle
+from pyrogram.types import BotCommand
 
-# ================= CONFIGURATION =================
+# ================= CONFIGURATION (SETTING) =================
+# अपनी डिटेल्स यहाँ भरें
 BOT_OWNER_NAME = "Sachin & Nitin"
 TELEGRAM_LINK = "https://t.me/Raftaarss_don" 
-API_ID = 12475131
-API_HASH = "719171e38be5a1f500613837b79c536f"
-BOT_TOKEN = "8551687208:AAG0Vuuj3lyUhU1zClA_0C7VNS6pbhXUvsk"
-SKY_PASSWORD = "7989"
+API_ID = 12475131       # अपना API ID डालें
+API_HASH = "719171e38be5a1f500613837b79c536f"   # अपना API Hash डालें
+BOT_TOKEN = "8551687208:AAG0Vuuj3lyUhU1zClA_0C7VNS6pbhXUvsk" # अपना Bot Token डालें
+SKY_PASSWORD = "7989"   # HTML फाइल का पासवर्ड
 
-app = Client("ultimate_pro_max_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+app = Client("ultimate_bot_v2", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+user_mode = {}
 
 # ================= HTML GENERATOR =================
 def generate_html(file_name, content, is_protected=False):
@@ -35,6 +39,7 @@ def generate_html(file_name, content, is_protected=False):
         url = url.strip()
         low_u = url.lower()
         
+        # Category Logic
         if any(x in low_u for x in [".m3u8", ".mpd", ".mp4", ".mkv"]): 
             t = "VIDEO"; v_c += 1; icon = "🎥"
         elif ".pdf" in low_u: 
@@ -63,7 +68,7 @@ def generate_html(file_name, content, is_protected=False):
 
     js_playlist = json.dumps(playlist_data)
 
-    # LOGIN SCREEN
+    # LOGIN LOGIC
     login_html = ""
     security_script = "document.getElementById('app-wrapper').style.display = 'block';" 
     if is_protected:
@@ -89,17 +94,9 @@ def generate_html(file_name, content, is_protected=False):
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     
     <style>
-        :root {{ 
-            --red: #ef4444; --green: #10b981; --orange: #f59e0b;
-        }}
-        [data-theme="dark"] {{
-            --bg: #0f172a; --card-bg: #1e293b; --text: #f8fafc; --text-sec: #94a3b8; 
-            --border: #334155; --modal-bg: #000;
-        }}
-        [data-theme="light"] {{
-            --bg: #f8fafc; --card-bg: #ffffff; --text: #1e293b; --text-sec: #64748b; 
-            --border: #e2e8f0; --modal-bg: #fff;
-        }}
+        :root {{ --red: #ef4444; --green: #10b981; --orange: #f59e0b; }}
+        [data-theme="dark"] {{ --bg: #0f172a; --card-bg: #1e293b; --text: #f8fafc; --text-sec: #94a3b8; --border: #334155; --modal-bg: #000; }}
+        [data-theme="light"] {{ --bg: #f8fafc; --card-bg: #ffffff; --text: #1e293b; --text-sec: #64748b; --border: #e2e8f0; --modal-bg: #fff; }}
         [data-color="blue"] {{ --primary: #3b82f6; }}
         [data-color="red"] {{ --primary: #ef4444; }}
         [data-color="green"] {{ --primary: #22c55e; }}
@@ -112,26 +109,22 @@ def generate_html(file_name, content, is_protected=False):
         * {{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }}
         #app-wrapper {{ display: none; }} 
 
-        /* LOGIN */
+        /* UI STYLES */
         #login-screen {{ position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 9999; display: none; justify-content: center; align-items: center; }}
         .login-box {{ background: var(--card-bg); padding: 25px; border-radius: 12px; width: 85%; max-width: 300px; border: 1px solid var(--border); text-align: center; }}
         .login-box input {{ width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text); outline: none; }}
         .login-box button {{ width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }}
 
-        /* HEADER */
         .header {{ background: var(--card-bg); padding: 15px; position: sticky; top: 0; z-index: 50; border-bottom: 1px solid var(--border); }}
         .h-top {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }}
         .h-title {{ margin: 0; font-size: 16px; font-weight: 700; color: var(--primary); }}
-        .right-actions {{ display: flex; align-items: center; gap: 12px; }}
         .tg-link {{ color: white; background: var(--primary); text-decoration: none; font-size: 11px; font-weight: bold; padding: 5px 12px; border-radius: 20px; }}
         .mode-btn {{ cursor: pointer; font-size: 18px; }}
 
-        /* THEME DOTS */
         .theme-row {{ display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; }}
         .t-dot {{ width: 22px; height: 22px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: 0.2s; flex-shrink: 0; }}
         .t-dot:hover {{ transform: scale(1.2); }}
-        
-        /* FILTERS */
+
         .stats-container {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 15px; }}
         .stat-card {{ background: var(--card-bg); padding: 10px 5px; border-radius: 8px; text-align: center; cursor: pointer; border: 1px solid var(--border); transition: 0.2s; }}
         .stat-num {{ font-size: 14px; font-weight: 800; display: block; }}
@@ -142,7 +135,6 @@ def generate_html(file_name, content, is_protected=False):
         .sc-aud {{ color: var(--orange); }}
         .sc-pdf {{ color: var(--green); }}
 
-        /* LIST */
         .list-container {{ padding: 0 15px; }}
         .search-bar {{ width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text); outline: none; margin-bottom: 10px; }}
         .list-item {{ background: var(--card-bg); margin-bottom: 8px; border-radius: 8px; padding: 12px; display: flex; align-items: center; border: 1px solid var(--border); cursor: pointer; }}
@@ -153,8 +145,10 @@ def generate_html(file_name, content, is_protected=False):
         .meta-tag {{ font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: bold; background: rgba(100,100,100,0.1); }}
         .tag-VIDEO {{ color: var(--primary); }} .tag-PDF {{ color: var(--green); }} .tag-AUDIO {{ color: var(--orange); }}
 
-        /* CINEMA POPUP */
-        .cinema-modal {{ display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 3000; }}
+        /* PLAYER & OVERLAYS */
+        .cinema-modal, .player-overlay {{ display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 3000; }}
+        .player-overlay {{ z-index: 4000; background: black; flex-direction: column; }}
+        
         .bg-layer {{ position: absolute; top: 0; left: 0; width: 100%; height: 60%; background-size: cover; background-position: center; mask-image: linear-gradient(to bottom, black 20%, transparent 100%); -webkit-mask-image: linear-gradient(to bottom, black 20%, transparent 100%); opacity: 0.6; }}
         .cinema-content {{ position: absolute; bottom: 0; width: 100%; height: 60%; padding: 20px; background: linear-gradient(to top, #000 20%, transparent); display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 15px; }}
         .c-poster {{ width: 120px; height: 180px; border-radius: 8px; object-fit: cover; box-shadow: 0 5px 20px black; border: 1px solid rgba(255,255,255,0.2); }}
@@ -163,47 +157,30 @@ def generate_html(file_name, content, is_protected=False):
         .btn-main {{ background: var(--primary); color: white; }}
         .btn-sub {{ background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(5px); }}
 
-        /* PLAYER OVERLAY & CONTROLS */
-        .player-overlay {{ display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: black; z-index: 4000; flex-direction: column; }}
-        
-        /* Watermark (Top Right) */
-        .watermark {{ 
-            position: absolute; top: 15px; right: 60px; 
-            color: rgba(255,255,255,0.5); font-weight: 900; font-size: 14px; 
-            pointer-events: none; z-index: 55; text-shadow: 0 0 5px black;
-        }}
-        
-        /* MINIMIZED MODE */
-        .minimized .player-overlay {{ 
-            width: 300px !important; height: 170px !important; top: auto; left: auto; bottom: 20px; right: 20px;
-            border: 2px solid var(--primary); border-radius: 12px; overflow: hidden;
-        }}
-        .minimized .bottom-controls, .minimized .watermark, .minimized .red-bar-box, .minimized .settings-menu, .minimized .lock-icon {{ display: none !important; }}
-        .minimized .player-header {{ padding: 5px; }}
-        .minimized #pTitle {{ font-size: 10px; }}
-
+        .watermark {{ position: absolute; top: 15px; right: 60px; color: rgba(255,255,255,0.5); font-weight: 900; font-size: 14px; pointer-events: none; z-index: 55; text-shadow: 0 0 5px black; }}
         .red-bar-box {{ position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; display: flex; justify-content: center; align-items: center; }}
         .red-bar {{ width: 50px; height: 0%; background: linear-gradient(to top, rgba(255,0,0,0.8), transparent); box-shadow: 0 0 40px #ff0000; opacity: 0; transition: height 0.1s; border-radius: 20px; }}
-        
         .player-header {{ position: absolute; top: 0; width: 100%; padding: 15px; display: flex; justify-content: space-between; z-index: 50; background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent); align-items: center; }}
-        
         .player-mid {{ flex-grow: 1; position: relative; display: flex; align-items: center; justify-content: center; }}
         .bottom-controls {{ background: #000; padding: 15px; display: flex; justify-content: center; gap: 8px; border-top: 1px solid #222; flex-wrap: wrap; z-index: 60; }}
         .ctrl-btn {{ background: #222; color: white; border: none; padding: 8px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }}
         .ctrl-next {{ background: var(--primary); color: white; }}
         
-        /* SETTINGS MENU (Speed 4x included) */
         .settings-menu {{ position: absolute; top: 60px; right: 20px; background: rgba(20,20,20,0.95); border: 1px solid #333; border-radius: 8px; padding: 15px; z-index: 100; display: none; flex-direction: column; gap: 10px; width: 200px; backdrop-filter: blur(10px); }}
         .sm-item {{ display: flex; flex-direction: column; gap: 5px; }}
         .sm-label {{ font-size: 12px; color: #aaa; text-transform: uppercase; }}
         .sm-select {{ background: #333; color: white; border: none; padding: 8px; border-radius: 4px; font-size: 14px; }}
-
         .lock-icon {{ position: absolute; bottom: 30px; right: 20px; color: white; background: rgba(255,255,255,0.2); padding: 10px; border-radius: 50%; cursor: pointer; z-index: 65; }}
+        
+        /* MINIMIZED */
+        .minimized .player-overlay {{ width: 300px !important; height: 170px !important; top: auto; left: auto; bottom: 20px; right: 20px; border: 2px solid var(--primary); border-radius: 12px; overflow: hidden; }}
+        .minimized .bottom-controls, .minimized .watermark, .minimized .red-bar-box, .minimized .settings-menu, .minimized .lock-icon {{ display: none !important; }}
+        .minimized .player-header {{ padding: 5px; }}
+        .minimized #pTitle {{ font-size: 10px; }}
 
         .pdf-frame {{ width: 100%; height: 100%; border: none; background: white; }}
         .img-view {{ width: 100%; height: 100%; object-fit: contain; }}
         .footer {{ text-align: center; padding: 20px; color: var(--text-sec); font-size: 11px; }}
-        
         #toast {{ position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: white; padding: 8px 16px; border-radius: 20px; font-size: 12px; z-index: 5000; display: none; }}
     </style>
 </head>
@@ -219,7 +196,6 @@ def generate_html(file_name, content, is_protected=False):
                     <span class="mode-btn" onclick="toggleMode()">🌓</span>
                 </div>
             </div>
-            
             <div class="theme-row">
                 <div class="t-dot" style="background:#3b82f6" onclick="setTheme('blue')"></div>
                 <div class="t-dot" style="background:#ef4444" onclick="setTheme('red')"></div>
@@ -280,14 +256,12 @@ def generate_html(file_name, content, is_protected=False):
         </div>
 
         <div id="settingsMenu" class="settings-menu">
-            <div class="sm-item">
-                <div class="sm-label">Speed</div>
+            <div class="sm-item"><div class="sm-label">Speed</div>
                 <select class="sm-select" onchange="changeSpeed(this.value)">
                     <option value="0.5">0.5x</option><option value="1" selected>1x</option><option value="1.5">1.5x</option><option value="2">2x</option><option value="3">3x</option><option value="4">4x</option>
                 </select>
             </div>
-            <div class="sm-item">
-                <div class="sm-label">Quality</div>
+            <div class="sm-item"><div class="sm-label">Quality</div>
                 <select class="sm-select" id="qualitySelect" onchange="changeQuality(this.value)"><option value="-1">Auto</option></select>
             </div>
         </div>
@@ -309,7 +283,6 @@ def generate_html(file_name, content, is_protected=False):
             <button class="ctrl-btn" onclick="toggleFav('pFavBtn')" id="pFavBtn">🤍 Fav</button>
         </div>
     </div>
-    
     <div id="toast">Alert</div>
 
     <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
@@ -339,16 +312,13 @@ def generate_html(file_name, content, is_protected=False):
         const playlist = {js_playlist};
         let currentIndex = -1;
         let hls = new Hls();
-        let isLocked = false;
-        let isMinimized = false;
+        let isLocked = false, isMinimized = false;
         
         const player = new Plyr('#player', {{
             controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'settings', 'fullscreen'],
-            hideControls: true,
-            speed: {{ selected: 1, options: [0.5, 1, 1.5, 2, 3, 4] }}
+            hideControls: true, speed: {{ selected: 1, options: [0.5, 1, 1.5, 2, 3, 4] }}
         }});
 
-        // AUTO PLAY NEXT
         player.on('ended', () => playNext());
 
         window.onload = function() {{
@@ -410,7 +380,6 @@ def generate_html(file_name, content, is_protected=False):
             document.body.classList.remove('minimized');
         }}
 
-        // GESTURES
         let startY = 0;
         const area = document.getElementById('gestureArea');
         const redBar = document.getElementById('redBar');
@@ -435,26 +404,17 @@ def generate_html(file_name, content, is_protected=False):
         function changeSpeed(val) {{ player.speed = parseFloat(val); }}
         function changeQuality(val) {{ hls.currentLevel = parseInt(val); }}
         function seek(s) {{ player.currentTime += s; }}
-        
-        function playNext() {{ 
-            if(currentIndex+1 < playlist.length) {{ 
-                currentIndex++; startPlayer(); 
-            }} 
-        }}
-        
+        function playNext() {{ if(currentIndex+1 < playlist.length) {{ currentIndex++; startPlayer(); }} }}
         function downloadCurrent() {{ window.open(playlist[currentIndex].url, '_blank'); }}
-        
         function toggleLock() {{
             isLocked = !isLocked;
             document.querySelector('.lock-icon').innerText = isLocked ? '🔒' : '🔓';
             document.getElementById('extControls').style.display = isLocked ? 'none' : 'flex';
         }}
-        
         function toggleMinimize() {{
             isMinimized = !isMinimized;
             document.body.classList.toggle('minimized', isMinimized);
         }}
-
         function toggleFav(btnId) {{
             const url = playlist[currentIndex].url;
             if(localStorage.getItem('fav_'+url)) {{
@@ -467,7 +427,6 @@ def generate_html(file_name, content, is_protected=False):
             updateFavBtn(btnId);
             updateFavCount();
         }}
-
         function updateFavBtn(btnId) {{
             const url = playlist[currentIndex].url;
             const btn = document.getElementById(btnId);
@@ -475,13 +434,11 @@ def generate_html(file_name, content, is_protected=False):
             if(btnId === 'favBtn') btn.innerText = isFav ? "✓ Added" : "❤️ Add to Favorites";
             else btn.innerText = isFav ? "❤️ Saved" : "🤍 Fav";
         }}
-
         function updateFavCount() {{
             let c = 0;
             playlist.forEach(i => {{ if(localStorage.getItem('fav_'+i.url)) c++; }});
             document.getElementById('favCount').innerText = c;
         }}
-
         function filterList(t) {{
             document.querySelectorAll('.list-item').forEach(e => {{
                 let show = false;
@@ -509,22 +466,31 @@ def generate_html(file_name, content, is_protected=False):
 """
 
 # ================= TELEGRAM HANDLER =================
-@app.on_message(filters.command(["start", "stop", "html", "sky", "txt"]))
+@app.on_message(filters.command(["start", "help", "stop", "html", "sky", "txt"]))
 async def handle_cmds(c, m):
     cmd = m.command[0]
-    if cmd == "start":
-        return await m.reply_text(f"🚀 **Bot Online**\n\n/html - Generate\n/sky - Secured\n/txt - Links")
+    if cmd in ["start", "help"]:
+        return await m.reply_text(
+            f"👋 **Welcome {m.from_user.first_name}**\n\n"
+            f"**Bot Commands:**\n"
+            f"🔹 `/html` - Generate Standard Dashboard\n"
+            f"🔹 `/sky` - Generate Secured Dashboard\n"
+            f"🔹 `/txt` - Extract Links Only\n"
+            f"🔹 `/stop` - Cancel Process\n\n"
+            f"**How to use:** Select a mode & send file."
+        )
     if cmd == "stop":
         user_mode.pop(m.from_user.id, None)
-        return await m.reply_text("🛑 Reset.")
+        return await m.reply_text("🛑 **Stopped.**")
+    
     user_mode[m.from_user.id] = cmd
-    await m.reply_text(f"✅ Mode: {cmd.upper()}\nFile bhejo!")
+    await m.reply_text(f"✅ **Mode: {cmd.upper()}**\n📄 Send your file now!")
 
 @app.on_message(filters.document)
 async def process_file(c, m):
     uid = m.from_user.id
     mode = user_mode.get(uid)
-    if not mode: return await m.reply_text("⚠️ Select mode!")
+    if not mode: return await m.reply_text("⚠️ Select a mode first!")
     
     msg = await m.reply_text("🔄 Processing...")
     path = await m.download()
@@ -537,13 +503,13 @@ async def process_file(c, m):
         html_data = generate_html(m.document.file_name, content, is_protected=(mode=="sky"))
         out_path = path.rsplit('.', 1)[0] + "_Final.html"
         with open(out_path, "w", encoding="utf-8") as f: f.write(html_data)
-        cap = "✅ **Dashboard Ready**\nWatermark, GIF, CC, Speed 4x, Lock, Minimize Added!"
+        cap = "✅ **Dashboard Created**\nIncludes Watermark, GIF, CC, 4x Speed."
     
     elif mode == "txt":
         links = re.findall(r"(https?://[^\s\n]+)", content)
         out_path = path.rsplit('.', 1)[0] + "_links.txt"
         with open(out_path, "w", encoding="utf-8") as f: f.write("\n".join(links))
-        cap = f"📄 Links: {len(links)}"
+        cap = f"📄 Extracted {len(links)} Links"
 
     await m.reply_document(out_path, caption=cap)
     await msg.delete()
@@ -551,4 +517,5 @@ async def process_file(c, m):
     if os.path.exists(out_path): os.remove(out_path)
 
 print("🚀 Bot Started...")
+# For Auto-Menu, run /setcommands in BotFather manually as described before
 app.run()
