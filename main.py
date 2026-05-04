@@ -2,6 +2,8 @@ import os
 import re
 import json
 import random
+import requests
+from datetime import datetime
 from pyrogram import Client, filters
 
 # ================= CONFIGURATION =================
@@ -14,6 +16,30 @@ SKY_PASSWORD = "7989"
 
 app = Client("ultimate_fixed_commands", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 user_mode = {}
+
+# ================= MOBILE LOOKUP FUNCTION =================
+def mobile_lookup(mobile):
+    try:
+        url = f"https://api.vectorxo.online/lookup?key=vectorxo&mobile={mobile}"
+        r = requests.get(url, timeout=10)
+        r.raise_for_status()
+        data = r.json()
+
+        if isinstance(data, list) and data:
+            rec = data[0]
+            return f"""✅ **Lookup Successful**
+
+📱 **Mobile** : `{rec.get('mobile', 'N/A')}`
+👤 **Name** : {rec.get('name', 'N/A')}
+👨‍👧 **Father** : {rec.get('fname', 'N/A')}
+📍 **Address** : {rec.get('address', 'N/A')}
+📡 **Circle** : {rec.get('circle', 'N/A')}
+🆔 **ID** : {rec.get('id', 'N/A')}
+⏰ **Time** : {datetime.now().strftime("%d-%m-%Y %I:%M %p")}"""
+        else:
+            return "❌ Is number ka data nahi mila."
+    except Exception as e:
+        return f"❌ Error: {str(e)}"
 
 # ================= HTML GENERATOR =================
 def generate_html(file_name, content, is_protected=False):
@@ -91,7 +117,7 @@ def generate_html(file_name, content, is_protected=False):
         [data-theme="dark"] {{ --bg: #0f172a; --card-bg: #1e293b; --text: #f8fafc; --text-sec: #94a3b8; --border: #334155; --modal-bg: #000; }}
         [data-theme="light"] {{ --bg: #f8fafc; --card-bg: #ffffff; --text: #1e293b; --text-sec: #64748b; --border: #e2e8f0; --modal-bg: #fff; }}
 
-[data-color="blue"] {{ --primary: #3b82f6; }}
+        [data-color="blue"] {{ --primary: #3b82f6; }}
         [data-color="red"] {{ --primary: #ef4444; }}
         [data-color="green"] {{ --primary: #22c55e; }}
         [data-color="purple"] {{ --primary: #a855f7; }}
@@ -135,7 +161,7 @@ def generate_html(file_name, content, is_protected=False):
         .list-item {{ background: var(--card-bg); margin-bottom: 8px; border-radius: 8px; padding: 12px; display: flex; align-items: center; border: 1px solid var(--border); cursor: pointer; }}
         .item-icon-box {{ width: 40px; height: 40px; background: rgba(100,100,100,0.1); border-radius: 8px; display: flex; justify-content: center; align-items: center; margin-right: 12px; font-size: 18px; }}
 
-.item-info {{ flex-grow: 1; min-width: 0; }}
+        .item-info {{ flex-grow: 1; min-width: 0; }}
         .item-title {{ font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; }}
         .item-meta {{ display: flex; align-items: center; gap: 8px; }}
         .meta-tag {{ font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: bold; background: rgba(100,100,100,0.1); }}
@@ -166,7 +192,7 @@ def generate_html(file_name, content, is_protected=False):
         .settings-menu {{ position: absolute; top: 60px; right: 20px; background: rgba(20,20,20,0.95); border: 1px solid #333; border-radius: 8px; padding: 15px; z-index: 100; display: none; flex-direction: column; gap: 10px; width: 220px; backdrop-filter: blur(10px); }}
         .sm-item {{ display: flex; flex-direction: column; gap: 5px; }}
 
-.sm-label {{ font-size: 12px; color: #aaa; text-transform: uppercase; }}
+        .sm-label {{ font-size: 12px; color: #aaa; text-transform: uppercase; }}
         .sm-select {{ background: #333; color: white; border: none; padding: 8px; border-radius: 4px; font-size: 14px; }}
         .clean-btn {{ background: #ef4444; color: white; border: none; padding: 8px; width: 100%; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 5px; }}
         .lock-icon {{ position: absolute; bottom: 30px; right: 20px; color: white; background: rgba(255,255,255,0.2); padding: 12px; border-radius: 50%; cursor: pointer; z-index: 65; font-size: 18px; }}
@@ -215,7 +241,7 @@ def generate_html(file_name, content, is_protected=False):
             <div class="stat-card" onclick="filterList('IMAGE')"><span class="stat-num" style="color:var(--orange)">{i_c}</span><span class="stat-label">Img</span></div>
         </div>
 
-<div class="list-container">
+        <div class="list-container">
             <div class="search-box">
                 <input type="text" class="search-bar" id="searchInput" placeholder="Search..." onkeyup="searchList()">
                 <span class="clear-search" onclick="clearSearch()">✕</span>
@@ -279,7 +305,7 @@ def generate_html(file_name, content, is_protected=False):
             <img id="imgView" class="img-view" style="display:none;">
         </div>
 
-<div class="bottom-controls" id="extControls">
+        <div class="bottom-controls" id="extControls">
             <button class="ctrl-btn" onclick="seek(-10)">⏪ 10s</button>
             <button class="ctrl-btn" onclick="seek(10)">10s ⏩</button>
             <button class="ctrl-btn" onclick="showToast('GIF Mode: ON')">GIF</button>
@@ -345,7 +371,7 @@ def generate_html(file_name, content, is_protected=False):
         function openCinema(idx) {{
             currentIndex = idx;
             const item = playlist[idx];
-            document.getElementById('bgLayer').style.backgroundImage = url('${{item.poster}}');
+            document.getElementById('bgLayer').style.backgroundImage = `url('${{item.poster}}')`;
             document.getElementById('cPoster').src = item.poster;
             document.getElementById('cTitle').innerText = item.name;
             document.getElementById('cType').innerText = item.type;
@@ -361,7 +387,7 @@ def generate_html(file_name, content, is_protected=False):
             document.getElementById('pTitle').innerText = playlist[currentIndex].name;
             updateFavBtn('pFavBtn');
 
-const item = playlist[currentIndex];
+            const item = playlist[currentIndex];
             const v = document.getElementById('player');
             const p = document.getElementById('pdfFrame');
             const i = document.getElementById('imgView');
@@ -375,7 +401,7 @@ const item = playlist[currentIndex];
                     hls.on(Hls.Events.MANIFEST_PARSED, () => {{
                         const qSel = document.getElementById('qualitySelect');
                         qSel.innerHTML = '<option value="-1">Auto</option>';
-                        hls.levels.forEach((l, idx) => {{ qSel.innerHTML += <option value="${{idx}}">${{l.height}}p</option>; }});
+                        hls.levels.forEach((l, idx) => {{ qSel.innerHTML += `<option value="${{idx}}">${{l.height}}p</option>`; }});
                     }});
                 }} else {{ v.src = item.url; }}
                 player.play();
@@ -434,8 +460,7 @@ const item = playlist[currentIndex];
         
         function toggleFav(btnId) {{
             const url = playlist[currentIndex].url;
-
-if(localStorage.getItem('fav_'+url)) {{
+            if(localStorage.getItem('fav_'+url)) {{
                 localStorage.removeItem('fav_'+url);
                 document.getElementById('list-fav-' + currentIndex).style.display = 'none';
             }} else {{
@@ -489,15 +514,29 @@ if(localStorage.getItem('fav_'+url)) {{
 """
 
 # ================= HANDLERS =================
+
+# --- NEW: NUMBER LOOKUP COMMAND ---
+@app.on_message(filters.command("num"))
+async def handle_lookup(c, m):
+    if len(m.command) < 2:
+        return await m.reply_text("⚠️ **Format:** `/num 7070727268`")
+    
+    number = m.command[1]
+    if len(number) == 10 and number.isdigit():
+        msg = await m.reply_text("🔍 Searching details...")
+        result = mobile_lookup(number)
+        await msg.edit(result)
+    else:
+        await m.reply_text("⚠️ Sirf 10 digit ka valid number enter karein.")
+
 @app.on_message(filters.command(["start", "help", "html", "sky", "txt", "stop"]))
 async def handle_cmds(c, m):
-    print(f"Command received: {m.text}")
     cmd = m.command[0]
     
     if cmd == "start":
-        await m.reply_text("👋 Welcome! Select a mode:\n/html\n/sky\n/txt")
+        await m.reply_text("👋 Welcome! Select a mode:\n/html\n/sky\n/txt\n\n🔍 Use `/num [number]` to lookup details.")
     elif cmd == "help":
-        await m.reply_text("💡 Help:\n/html - Standard\n/sky - Password\n/stop - Reset")
+        await m.reply_text("💡 Help:\n/html - Standard\n/sky - Password\n/num - Number Lookup\n/stop - Reset")
     elif cmd == "stop":
         user_mode.pop(m.from_user.id, None)
         await m.reply_text("🛑 Stopped.")
@@ -530,7 +569,7 @@ async def process_file(c, m):
         with open(out_path, "w", encoding="utf-8") as f: f.write("\n".join(links))
         cap = f"📄 Extracted {len(links)} Links"
 
-await m.reply_document(out_path, caption=cap)
+    await m.reply_document(out_path, caption=cap)
     await msg.delete()
     if os.path.exists(path): os.remove(path)
     if os.path.exists(out_path): os.remove(out_path)
