@@ -3,8 +3,22 @@ import re
 import json
 import random
 import requests
+import io
+import time
+import logging
+import threading
 from datetime import datetime
+from urllib3.util import Retry
+from requests.adapters import HTTPAdapter
 from pyrogram import Client, filters
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+# Setup detailed logging in console
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
 
 # ================= CONFIGURATION =================
 BOT_OWNER_NAME = "Sachin & Nitin"
@@ -14,8 +28,27 @@ API_HASH = "719171e38be5a1f500613837b79c536f"
 BOT_TOKEN = "8551687208:AAG0Vuuj3lyUhU1zClA_0C7VNS6pbhXUvsk" 
 SKY_PASSWORD = "7989"   
 
+# Second Code Configuration  
+CHANNEL_ID = --1002542634912  
+
+BATCHES_URL = "https://cw-ut-apis-e37c22944d2f.herokuapp.com/api/batches"
+BATCH_TOPICS_LIST_URL = "https://cw-api-website.vercel.app/batch/{batch_id}"
+BATCH_CONTENT_URL = "https://cw-api-website.vercel.app/batch?batchid={batch_id}&topicid={topic_id}"
+VIDEO_DECRYPT_BASE = "https://cw-vid-virid.vercel.app/get_video_details"
+
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Content-Type": "application/json",
+    "Accept": "application/json"
+}
+
 app = Client("ultimate_fixed_commands", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 user_mode = {}
+
+# --- OPTIMIZED NETWORK SESSION WITH RETRIES ---
+session = requests.Session()
+retries = Retry(total=3, backoff_factor=0.5, status_forcelist=[500, 502, 503, 504])
+session.mount('https://', HTTPAdapter(max_retries=retries))
 
 # ================= MOBILE LOOKUP FUNCTION =================
 def mobile_lookup(mobile):
@@ -513,6 +546,182 @@ def generate_html(file_name, content, is_protected=False):
 </html>
 """
 
+# --- HTML ESCAPE HELPER ---
+def escape_html(text):
+    if not isinstance(text, str):
+        return text
+    return text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+
+# --- USER FORCE JOIN CHECK FUNCTION ---
+async def is_user_joined(c, user_id):
+    try:
+        member = await c.get_chat_member(CHANNEL_ID, user_id)
+        if member.status in ['member', 'administrator', 'creator']:
+            return True
+        return False
+    except Exception as e:
+        logger.error(f"Join Check Error: {e}")
+        return False
+
+async def send_join_request(m):
+    markup = InlineKeyboardMarkup([
+        [InlineKeyboardButton("📢 Join Channel", url=CHANNEL_INVITE_LINK)],
+        [InlineKeyboardButton("🔄 Joined (Check)", callback_data="check_join")]
+    ])
+    msg = (
+        "⚠️ **Access Denied!**\n\n"
+        "join this channel then use this bot\n"
+        "Niche diye gaye button par click karke join karein aur 'Joined (Check)' par click karein."
+    )
+    await m.reply_text(msg, reply_markup=markup)
+
+# --- Helper Function for URL Decryption with DRM Validation ---
+def decrypt_video_token(raw_token_str):
+    try:
+        dec_res = session.get(VIDEO_DECRYPT_BASE, params={'name': raw_token_str}, headers=HEADERS, timeout=10)
+        if dec_res.status_code == 200:
+            dec_data = dec_res.json()
+            if dec_data.get("status") is True and "data" in dec_data and "link" in dec_data["data"]:
+                link_obj = dec_data["data"]["link"]
+                file_url = link_obj.get("file_url")
+                token = link_obj.get("token", "")
+                return file_url, token
+            else:
+                file_url = dec_data.get('videoUrl') or dec_data.get('url') or dec_data.get('link') or dec_data.get('file_url')
+                token = dec_data.get('token') or ''
+                if file_url:
+                    return file_url, token
+        return f"https://cw-vid-virid.vercel.app/get_video_details?name={raw_token_str}", ""
+    except Exception as e:
+        logger.error(f"Decryption failed for token {raw_token_str}: {e}")
+        return f"https://cw-vid-virid.vercel.app/get_video_details?name={raw_token_str}", ""
+
+# --- MULTITHREADED BATCH CONTENT GENERATION ---
+def process_batch_extraction_thread(chat_id, msg_id, batch_id):
+    try:
+        topics_res = session.get(BATCH_TOPICS_LIST_URL.format(batch_id=batch_id), headers=HEADERS, timeout=15)
+        if topics_res.status_code != 200:
+            app.edit_message_text(chat_id, msg_id, f"❌ Batch list fetch failed. Code: {topics_res.status_code}")
+            return
+            
+        topics_data = topics_res.json()
+        batch_details = topics_data.get('data', topics_data) if isinstance(topics_data, dict) else topics_data
+
+        batch_name = batch_details.get('batchName') or batch_details.get('name') or f"Batch_{batch_id}" if isinstance(batch_details, dict) else f"Batch_{batch_id}"
+        topics = batch_details.get('topics', []) if isinstance(batch_details, dict) else batch_details
+        
+        if not isinstance(topics, list) or not topics:
+            app.edit_message_text(chat_id, msg_id, "⚠️ no batch ")
+            return
+            
+        app.edit_message_text(chat_id, msg_id, f"📂 Total {len(topics)} Topics mile.\n⏳ Videos aur PDFs link converted ")
+        
+        txt_content = f"==================================================\n"
+        txt_content += f" BATCH: {batch_name.upper()}\n"
+        txt_content += f" BATCH ID: {batch_id}\n"
+        txt_content += f"==================================================\n\n"
+        
+        total_videos_all = 0
+        total_pdfs_all = 0
+        
+        for t_index, topic in enumerate(topics, 1):
+            if not isinstance(topic, dict): continue
+                
+            topic_name = topic.get('topicName') or topic.get('name') or 'Unnamed Topic'
+            topic_id = topic.get('topicId') or topic.get('id') or topic.get('_id')
+            if not topic_id: continue
+                
+            raw_videos = []
+            raw_pdfs = []
+            
+            try:
+                content_url = BATCH_CONTENT_URL.format(batch_id=batch_id, topic_id=topic_id)
+                content_res = session.get(content_url, headers=HEADERS, timeout=12)
+                if content_res.status_code == 200:
+                    content_json = content_res.json()
+                    inner_data = content_json.get('data', content_json) if isinstance(content_json, dict) else content_json
+                    if isinstance(inner_data, dict):
+                        raw_videos = inner_data.get('classes', []) or inner_data.get('videos', []) or inner_data.get('class', [])
+                        raw_pdfs = inner_data.get('notes', []) or inner_data.get('pdfs', []) or inner_data.get('batch-notes', [])
+            except Exception as e:
+                logger.error(f"Error fetching topic {topic_id}: {e}")
+                continue
+
+            v_count = len(raw_videos) if isinstance(raw_videos, list) else 0
+            p_count = len(raw_pdfs) if isinstance(raw_pdfs, list) else 0
+            
+            total_videos_all += v_count
+            total_pdfs_all += p_count
+            
+            txt_content += f"--------------------------------------------------\n"
+            txt_content += f"📂 TOPIC {t_index}: {topic_name} (ID: {topic_id})\n"
+            txt_content += f"📊 STATS   : {v_count} Videos | {p_count} PDFs\n"
+            txt_content += f"--------------------------------------------------\n\n"
+            
+            if isinstance(raw_videos, list) and raw_videos:
+                txt_content += "🎥 VIDEOS LIST:\n"
+                for vid in raw_videos:
+                    if isinstance(vid, dict):
+                        vid_name = vid.get('title') or vid.get('videoName') or vid.get('name') or 'Video'
+                        raw_token = ""
+                        for key, value in vid.items():
+                            val_str = str(value).strip()
+                            if "_" in val_str and not val_str.startswith('http') and len(val_str) > 8:
+                                raw_token = val_str
+                                break
+                        if not raw_token:
+                            raw_token = vid.get('video_url') or vid.get('videoLink') or vid.get('url') or vid.get('link') or ''
+
+                        if raw_token:
+                            raw_token_str = str(raw_token).strip()
+                            if not raw_token_str.startswith('http'):
+                                video_url, key_token = decrypt_video_token(raw_token_str)
+                                txt_content += f"   🔹 {vid_name}\n   🔗 Link: {video_url}\n"
+                                if key_token:
+                                    txt_content += f"   🔑 DRM Key: {key_token}\n"
+                                txt_content += "\n"
+                            else:
+                                txt_content += f"   🔹 {vid_name}\n   🔗 Link: {raw_token_str}\n\n"
+                    time.sleep(0.5)
+            
+            if isinstance(raw_pdfs, list) and raw_pdfs:
+                txt_content += "📄 PDF & NOTES LIST:\n"
+                for pdf in raw_pdfs:
+                    if isinstance(pdf, dict):
+                        pdf_name = pdf.get('title') or pdf.get('pdfName') or pdf.get('name') or 'Document'
+                        pdf_url = pdf.get('download_url') or pdf.get('view_url') or pdf.get('pdfLink') or 'No Link'
+                        txt_content += f"   🔹 {pdf_name}\n   🔗 Link: {pdf_url}\n\n"
+                txt_content += "\n"
+            
+        summary_text = (
+            f"✅ **Extraction Complete!**\n\n"
+            f"📛 **Batch:** {escape_html(batch_name)}\n"
+            f"🆔 **ID:** {batch_id}\n"
+            f"📚 **Total Topics:** {len(topics)}\n"
+            f"🎥 **Total Videos:** {total_videos_all}\n"
+            f"📄 **Total PDFs:** {total_pdfs_all}\n\n"
+            f"📁 *welcome All*"
+        )
+                    
+        safe_filename = "".join([c for c in batch_name if c.isalpha() or c.isdigit() or c==' ']).rstrip()
+        safe_filename = safe_filename.replace(' ', '_') + "_Content.txt"
+        
+        file_buffer = io.BytesIO(txt_content.encode('utf-8'))
+        file_buffer.name = safe_filename
+        
+        try:
+            app.delete_messages(chat_id, msg_id)
+        except Exception:
+            pass
+            
+        app.send_document(chat_id, file_buffer, caption=summary_text)
+        logger.info(f"Successfully sent Batch {batch_id} content to Chat {chat_id}")
+            
+    except Exception as e:
+        logger.error(f"Error inside processing thread for Batch {batch_id}: {e}")
+        app.send_message(chat_id, f"❌ Real-time extraction error occurred: {str(e)}")
+
+
 # ================= HANDLERS =================
 
 # --- NEW: NUMBER LOOKUP COMMAND ---
@@ -529,14 +738,68 @@ async def handle_lookup(c, m):
     else:
         await m.reply_text("⚠️ Sirf 10 digit ka valid number enter karein.")
 
+# --- IMPLEMENTED CW EXTRACTOR COMMANDS ---
+@app.on_message(filters.command("cw"))
+async def handle_cw_commands(c, m):
+    if not await is_user_joined(c, m.from_user.id):
+        await send_join_request(m)
+        return
+
+    if len(m.command) < 2:
+        msg = (
+            "✨ **Welcome to Batch Extractor Bot Menu** ✨\n\n"
+            "⚡ **How to use**\n"
+            "1️⃣ `/cw fetch` - Database se saare batch fetch karein\n"
+            "2️⃣ `/cw [Batch_ID]` - Ek clean specialized `.txt` file pane ke liye (Example: `/cw 3368`)\n\n"
+            "📁 **Feature:** Bot automatic background me saare topics and video tokens decode karke ready karega!"
+        )
+        return await m.reply_text(msg)
+
+    sub_cmd = m.command[1].strip()
+
+    # /cw fetch logic
+    if sub_cmd.lower() == "fetch":
+        msg = await m.reply_text("⏳ Database fetching batch...")
+        try:
+            response = session.get(BATCHES_URL, headers=HEADERS, timeout=15)
+            if response.status_code == 200:
+                batches_data = response.json()
+                txt_content = "=========================================\n         OFFICIAL BATCHES LIST            \n=========================================\n\n"
+                nested_data = batches_data.get('data') if isinstance(batches_data, dict) and 'data' in batches_data else batches_data
+                
+                if isinstance(nested_data, dict):
+                    for index, (b_id, b_name) in enumerate(nested_data.items(), 1):
+                        txt_content += f"{index}. BATCH NAME : {b_name}\n   BATCH ID   : {b_id}\n{'-'*40}\n"
+                
+                file_buffer = io.BytesIO(txt_content.encode('utf-8'))
+                file_buffer.name = "All_Available_Batches.txt"
+                await m.reply_document(file_buffer, caption="📋 Sabhi available batches ki list tayar hai.")
+                await msg.delete()
+            else:
+                await msg.edit(f"❌ Failed to fetch batches. Server Response: {response.status_code}")
+        except Exception as e:
+            await msg.edit(f"❌ Error: {str(e)}")
+
+    # /cw [batch_id] logic
+    elif sub_cmd.isdigit():
+        status_msg = await m.reply_text(f"🔍 Batch ID: {sub_cmd} checking...")
+        task_thread = threading.Thread(
+            target=process_batch_extraction_thread,
+            args=(m.chat.id, status_msg.id, sub_cmd)
+        )
+        task_thread.daemon = True
+        task_thread.start()
+    else:
+        await m.reply_text("⚠️ Galat format. Sahi use karein: `/cw fetch` ya `/cw [Batch_ID]`")
+
 @app.on_message(filters.command(["start", "help", "html", "sky", "txt", "stop"]))
 async def handle_cmds(c, m):
     cmd = m.command[0]
     
     if cmd == "start":
-        await m.reply_text("👋 Welcome! Select a mode:\n/html\n/sky\n/txt\n\n🔍 Use `/num [number]` to lookup details.")
+        await m.reply_text("👋 Welcome! Select a mode:\n/html\n/sky\n/txt\n\n🔍 Use `/num [number]` to lookup details.\n⚡ Use `/cw` to access Batch Extractor System.")
     elif cmd == "help":
-        await m.reply_text("💡 Help:\n/html - Standard\n/sky - Password\n/num - Number Lookup\n/stop - Reset")
+        await m.reply_text("💡 Help:\n/html - Standard\n/sky - Password\n/num - Number Lookup\n/cw - Batch Extractor Menu\n/stop - Reset")
     elif cmd == "stop":
         user_mode.pop(m.from_user.id, None)
         await m.reply_text("🛑 Stopped.")
@@ -574,5 +837,25 @@ async def process_file(c, m):
     if os.path.exists(path): os.remove(path)
     if os.path.exists(out_path): os.remove(out_path)
 
-print("🚀 Bot Started...")
+# Callback Query Handler for Join Check
+@app.on_callback_query(filters.regex("check_join"))
+async def check_callback(c, cb):
+    if await is_user_joined(c, cb.from_user.id):
+        await cb.answer("✅ Access unlocked!", show_alert=False)
+        try:
+            await cb.message.delete()
+        except Exception:
+            pass
+        msg = (
+            "✨ **Welcome to Batch Extractor Bot Menu** ✨\n\n"
+            "⚡ **How to use**\n"
+            "1️⃣ `/cw fetch` - Database se saare batch fetch karein\n"
+            "2️⃣ `/cw [Batch_ID]` - Ek clean specialized `.txt` file pane ke liye\n\n"
+            "📁 **Feature:** Bot automatic background me saare topics and video tokens decode karke ready karega!"
+        )
+        await c.send_message(cb.message.chat.id, msg)
+    else:
+        await cb.answer("❌ plz join ", show_alert=True)
+
+print("🚀 Bot Started with Integrated Systems...")
 app.run()
