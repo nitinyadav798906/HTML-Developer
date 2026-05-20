@@ -5,13 +5,13 @@ import random
 import requests
 import io
 import time
+import sys
 import logging
 import threading
 from datetime import datetime
 from urllib3.util import Retry
 from requests.adapters import HTTPAdapter
 from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 # Setup detailed logging in console
 logging.basicConfig(
@@ -28,18 +28,27 @@ API_HASH = "719171e38be5a1f500613837b79c536f"
 BOT_TOKEN = "8551687208:AAG0Vuuj3lyUhU1zClA_0C7VNS6pbhXUvsk" 
 SKY_PASSWORD = "7989"   
 
-# Second Code Configuration  
-CHANNEL_ID = --1002542634912  
-
+# --- CW API Configuration ---
 BATCHES_URL = "https://cw-ut-apis-e37c22944d2f.herokuapp.com/api/batches"
 BATCH_TOPICS_LIST_URL = "https://cw-api-website.vercel.app/batch/{batch_id}"
 BATCH_CONTENT_URL = "https://cw-api-website.vercel.app/batch?batchid={batch_id}&topicid={topic_id}"
 VIDEO_DECRYPT_BASE = "https://cw-vid-virid.vercel.app/get_video_details"
 
+# --- SelectionWay API Configuration ---
+SW_API_BASE = "https://gdgoenkaratia.com/api"
+SW_USER_ID = ""  # Keep empty as per original code
+
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Content-Type": "application/json",
     "Accept": "application/json"
+}
+
+SW_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    "Accept": "application/json",
+    "Referer": "https://www.selectionway.com/",
+    "Origin": "https://www.selectionway.com",
 }
 
 app = Client("ultimate_fixed_commands", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
@@ -546,36 +555,18 @@ def generate_html(file_name, content, is_protected=False):
 </html>
 """
 
-# --- HTML ESCAPE HELPER ---
+# --- UTILITY ESCAPE & SANITIZE HELPERS ---
 def escape_html(text):
-    if not isinstance(text, str):
-        return text
+    if not isinstance(text, str): return text
     return text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
 
-# --- USER FORCE JOIN CHECK FUNCTION ---
-async def is_user_joined(c, user_id):
-    try:
-        member = await c.get_chat_member(CHANNEL_ID, user_id)
-        if member.status in ['member', 'administrator', 'creator']:
-            return True
-        return False
-    except Exception as e:
-        logger.error(f"Join Check Error: {e}")
-        return False
+def sanitize_filename(name):
+    name = re.sub(r'[<>:"/\\|?*]', '_', name)
+    name = re.sub(r'\s+', '_', name)
+    name = re.sub(r'_+', '_', name)
+    return name.strip('_. ') if name else "Unknown_Batch"
 
-async def send_join_request(m):
-    markup = InlineKeyboardMarkup([
-        [InlineKeyboardButton("📢 Join Channel", url=CHANNEL_INVITE_LINK)],
-        [InlineKeyboardButton("🔄 Joined (Check)", callback_data="check_join")]
-    ])
-    msg = (
-        "⚠️ **Access Denied!**\n\n"
-        "join this channel then use this bot\n"
-        "Niche diye gaye button par click karke join karein aur 'Joined (Check)' par click karein."
-    )
-    await m.reply_text(msg, reply_markup=markup)
-
-# --- Helper Function for URL Decryption with DRM Validation ---
+# --- CW CORE DECRYPTION PIPELINE ---
 def decrypt_video_token(raw_token_str):
     try:
         dec_res = session.get(VIDEO_DECRYPT_BASE, params={'name': raw_token_str}, headers=HEADERS, timeout=10)
@@ -583,20 +574,16 @@ def decrypt_video_token(raw_token_str):
             dec_data = dec_res.json()
             if dec_data.get("status") is True and "data" in dec_data and "link" in dec_data["data"]:
                 link_obj = dec_data["data"]["link"]
-                file_url = link_obj.get("file_url")
-                token = link_obj.get("token", "")
-                return file_url, token
+                return link_obj.get("file_url"), link_obj.get("token", "")
             else:
                 file_url = dec_data.get('videoUrl') or dec_data.get('url') or dec_data.get('link') or dec_data.get('file_url')
-                token = dec_data.get('token') or ''
-                if file_url:
-                    return file_url, token
+                return file_url, (dec_data.get('token') or '')
         return f"https://cw-vid-virid.vercel.app/get_video_details?name={raw_token_str}", ""
     except Exception as e:
         logger.error(f"Decryption failed for token {raw_token_str}: {e}")
         return f"https://cw-vid-virid.vercel.app/get_video_details?name={raw_token_str}", ""
 
-# --- MULTITHREADED BATCH CONTENT GENERATION ---
+# --- CW MULTITHREADED EXTRACTOR TASK ---
 def process_batch_extraction_thread(chat_id, msg_id, batch_id):
     try:
         topics_res = session.get(BATCH_TOPICS_LIST_URL.format(batch_id=batch_id), headers=HEADERS, timeout=15)
@@ -606,7 +593,6 @@ def process_batch_extraction_thread(chat_id, msg_id, batch_id):
             
         topics_data = topics_res.json()
         batch_details = topics_data.get('data', topics_data) if isinstance(topics_data, dict) else topics_data
-
         batch_name = batch_details.get('batchName') or batch_details.get('name') or f"Batch_{batch_id}" if isinstance(batch_details, dict) else f"Batch_{batch_id}"
         topics = batch_details.get('topics', []) if isinstance(batch_details, dict) else batch_details
         
@@ -616,27 +602,18 @@ def process_batch_extraction_thread(chat_id, msg_id, batch_id):
             
         app.edit_message_text(chat_id, msg_id, f"📂 Total {len(topics)} Topics mile.\n⏳ Videos aur PDFs link converted ")
         
-        txt_content = f"==================================================\n"
-        txt_content += f" BATCH: {batch_name.upper()}\n"
-        txt_content += f" BATCH ID: {batch_id}\n"
-        txt_content += f"==================================================\n\n"
-        
-        total_videos_all = 0
-        total_pdfs_all = 0
+        txt_content = f"==================================================\n BATCH: {batch_name.upper()}\n BATCH ID: {batch_id}\n==================================================\n\n"
+        total_videos_all = total_pdfs_all = 0
         
         for t_index, topic in enumerate(topics, 1):
             if not isinstance(topic, dict): continue
-                
             topic_name = topic.get('topicName') or topic.get('name') or 'Unnamed Topic'
             topic_id = topic.get('topicId') or topic.get('id') or topic.get('_id')
             if not topic_id: continue
                 
-            raw_videos = []
-            raw_pdfs = []
-            
+            raw_videos = raw_pdfs = []
             try:
-                content_url = BATCH_CONTENT_URL.format(batch_id=batch_id, topic_id=topic_id)
-                content_res = session.get(content_url, headers=HEADERS, timeout=12)
+                content_res = session.get(BATCH_CONTENT_URL.format(batch_id=batch_id, topic_id=topic_id), headers=HEADERS, timeout=12)
                 if content_res.status_code == 200:
                     content_json = content_res.json()
                     inner_data = content_json.get('data', content_json) if isinstance(content_json, dict) else content_json
@@ -649,14 +626,10 @@ def process_batch_extraction_thread(chat_id, msg_id, batch_id):
 
             v_count = len(raw_videos) if isinstance(raw_videos, list) else 0
             p_count = len(raw_pdfs) if isinstance(raw_pdfs, list) else 0
-            
             total_videos_all += v_count
             total_pdfs_all += p_count
             
-            txt_content += f"--------------------------------------------------\n"
-            txt_content += f"📂 TOPIC {t_index}: {topic_name} (ID: {topic_id})\n"
-            txt_content += f"📊 STATS   : {v_count} Videos | {p_count} PDFs\n"
-            txt_content += f"--------------------------------------------------\n\n"
+            txt_content += f"--------------------------------------------------\n📂 TOPIC {t_index}: {topic_name} (ID: {topic_id})\n📊 STATS   : {v_count} Videos | {p_count} PDFs\n--------------------------------------------------\n\n"
             
             if isinstance(raw_videos, list) and raw_videos:
                 txt_content += "🎥 VIDEOS LIST:\n"
@@ -669,16 +642,13 @@ def process_batch_extraction_thread(chat_id, msg_id, batch_id):
                             if "_" in val_str and not val_str.startswith('http') and len(val_str) > 8:
                                 raw_token = val_str
                                 break
-                        if not raw_token:
-                            raw_token = vid.get('video_url') or vid.get('videoLink') or vid.get('url') or vid.get('link') or ''
-
+                        if not raw_token: raw_token = vid.get('video_url') or vid.get('videoLink') or vid.get('url') or vid.get('link') or ''
                         if raw_token:
                             raw_token_str = str(raw_token).strip()
                             if not raw_token_str.startswith('http'):
                                 video_url, key_token = decrypt_video_token(raw_token_str)
                                 txt_content += f"   🔹 {vid_name}\n   🔗 Link: {video_url}\n"
-                                if key_token:
-                                    txt_content += f"   🔑 DRM Key: {key_token}\n"
+                                if key_token: txt_content += f"   🔑 DRM Key: {key_token}\n"
                                 txt_content += "\n"
                             else:
                                 txt_content += f"   🔹 {vid_name}\n   🔗 Link: {raw_token_str}\n\n"
@@ -693,71 +663,128 @@ def process_batch_extraction_thread(chat_id, msg_id, batch_id):
                         txt_content += f"   🔹 {pdf_name}\n   🔗 Link: {pdf_url}\n\n"
                 txt_content += "\n"
             
-        summary_text = (
-            f"✅ **Extraction Complete!**\n\n"
-            f"📛 **Batch:** {escape_html(batch_name)}\n"
-            f"🆔 **ID:** {batch_id}\n"
-            f"📚 **Total Topics:** {len(topics)}\n"
-            f"🎥 **Total Videos:** {total_videos_all}\n"
-            f"📄 **Total PDFs:** {total_pdfs_all}\n\n"
-            f"📁 *welcome All*"
-        )
-                    
-        safe_filename = "".join([c for c in batch_name if c.isalpha() or c.isdigit() or c==' ']).rstrip()
-        safe_filename = safe_filename.replace(' ', '_') + "_Content.txt"
+        summary_text = f"✅ **Extraction Complete!**\n\n📛 **Batch:** {escape_html(batch_name)}\n🆔 **ID:** {batch_id}\n📚 **Total Topics:** {len(topics)}\n🎥 **Total Videos:** {total_videos_all}\n📄 **Total PDFs:** {total_pdfs_all}\n\n📁 *welcome All*"
+        safe_filename = sanitize_filename(batch_name) + "_Content.txt"
         
         file_buffer = io.BytesIO(txt_content.encode('utf-8'))
         file_buffer.name = safe_filename
-        
-        try:
-            app.delete_messages(chat_id, msg_id)
-        except Exception:
-            pass
-            
+        try: app.delete_messages(chat_id, msg_id)
+        except Exception: pass
         app.send_document(chat_id, file_buffer, caption=summary_text)
-        logger.info(f"Successfully sent Batch {batch_id} content to Chat {chat_id}")
-            
     except Exception as e:
-        logger.error(f"Error inside processing thread for Batch {batch_id}: {e}")
-        app.send_message(chat_id, f"❌ Real-time extraction error occurred: {str(e)}")
+        app.send_message(chat_id, f"❌ Real-time extraction error: {str(e)}")
 
+# --- SELECTIONWAY SUBSYSTEM CORE METHODS ---
+def fetch_sw_classes(topic_id, course_id):
+    url = f"{SW_API_BASE}/topics/{topic_id}/classes?courseId={course_id}&userId={SW_USER_ID}"
+    try:
+        resp = session.get(url, headers=SW_HEADERS, timeout=60)
+        if resp.status_code == 200 and resp.json().get("state") == 200:
+            return resp.json().get("data", {}).get("classes", [])
+        return []
+    except Exception: return []
 
-# ================= HANDLERS =================
+def process_sway_extraction_thread(chat_id, msg_id, course_id, batch_title):
+    try:
+        url = f"{SW_API_BASE}/topic-and-section?courseId={course_id}&userId={SW_USER_ID}"
+        resp = session.get(url, headers=SW_HEADERS, timeout=30)
+        if resp.status_code != 200 or resp.json().get("state") != 200:
+            app.edit_message_text(chat_id, msg_id, "❌ SelectionWay API returned an error processing topics.")
+            return
+            
+        topics = resp.json().get("data", {}).get("topics", [])
+        if not topics:
+            app.edit_message_text(chat_id, msg_id, "⚠️ No topics found for this SelectionWay batch.")
+            return
 
-# --- NEW: NUMBER LOOKUP COMMAND ---
-@app.on_message(filters.command("num"))
+        app.edit_message_text(chat_id, msg_id, f"📂 Found {len(topics)} topics.\n⏳ Processing links and mapping tree structures...")
+        
+        txt_content = f"{'='*80}\n  BATCH: {batch_title}\n  Course ID: {course_id}\n  Extracted on: {time.strftime('%Y-%m-%d %H:%M:%S')}\n{'='*80}\n\n"
+        total_videos = total_pdfs = total_hls = 0
+        
+        for t_idx, topic in enumerate(topics, 1):
+            topic_name = topic.get("topicName", "Unknown Topic")
+            topic_id = topic.get("topicId")
+            class_count = topic.get("classCount", 0)
+            
+            txt_content += f"\n{'─'*80}\n  TOPIC: {topic_name}\n  Topic ID: {topic_id}\n  Classes: {class_count}\n{'─'*80}\n\n"
+            classes = fetch_sw_classes(topic_id, course_id)
+            if not classes:
+                txt_content += "    (No classes found)\n\n"
+                continue
+                
+            subtopic_groups = {}
+            for cls in classes:
+                sub = cls.get("subTopic", {})
+                sub_name = sub.get("subTopicName", "General") if sub else "General"
+                if sub_name not in subtopic_groups: subtopic_groups[sub_name] = []
+                subtopic_groups[sub_name].append(cls)
+                
+            for sub_name, sub_classes in subtopic_groups.items():
+                txt_content += f"    ┌── SubTopic: {sub_name}\n    │   Classes: {len(sub_classes)}\n    │\n"
+                for cls in sub_classes:
+                    title = cls.get("title", "Untitled")
+                    class_id = cls.get("classId", "N/A")
+                    txt_content += f"    ├── {title}\n    │   Class ID: {class_id}\n"
+                    
+                    hls_link = cls.get("class_link", "")
+                    if hls_link:
+                        txt_content += f"    │   [HLS] {hls_link}\n"
+                        total_hls += 1
+                        
+                    mp4s = cls.get("mp4Recordings", [])
+                    if mp4s:
+                        for mp4 in mp4s:
+                            quality = mp4.get("quality", "?")
+                            url_m = mp4.get("url", "")
+                            size = mp4.get("size", 0)
+                            if url_m:
+                                txt_content += f"    │   [MP4-{quality}] ({size:.1f}MB) {url_m}\n"
+                                total_videos += 1
+                                
+                    pdfs = cls.get("classPdf", [])
+                    if pdfs:
+                        for pdf in pdfs:
+                            txt_content += f"    │   [PDF] {pdf.get('name', 'PDF')}: {pdf.get('url', '')}\n"
+                            total_pdfs += 1
+                    txt_content += "    │\n"
+                txt_content += "    └──\n\n"
+            time.sleep(0.3)
+            
+        txt_content += f"\n{'='*80}\n  SUMMARY\n{'='*80}\n  Total HLS Streams : {total_hls}\n  Total MP4 Videos  : {total_videos}\n  Total PDFs        : {total_pdfs}\n  Total Links       : {total_hls + total_videos + total_pdfs}\n{'='*80}\n"
+        
+        safe_filename = sanitize_filename(batch_title) + "_SelectionWay.txt"
+        file_buffer = io.BytesIO(txt_content.encode('utf-8'))
+        file_buffer.name = safe_filename
+        
+        try: app.delete_messages(chat_id, msg_id)
+        except Exception: pass
+        
+        caption_text = f"✅ **SelectionWay Extracted!**\n\n📛 **Batch:** {batch_title}\n🎥 HLS Streams: {total_hls}\n📹 MP4 Recordings: {total_videos}\n📄 PDFs Total: {total_pdfs}"
+        app.send_document(chat_id, file_buffer, caption=caption_text)
+    except Exception as e:
+        app.send_message(chat_id, f"❌ SelectionWay Thread Error: {str(e)}")
+
+# ================= TELEGRAM BOT HANDLERS =================
+
+# --- NUMBER LOOKUP COMMAND ---
+@app.on_message(filters.command("num"), group=1)
 async def handle_lookup(c, m):
-    if len(m.command) < 2:
-        return await m.reply_text("⚠️ **Format:** `/num 7070727268`")
-    
+    if len(m.command) < 2: return await m.reply_text("⚠️ **Format:** `/num 7070727268`")
     number = m.command[1]
     if len(number) == 10 and number.isdigit():
         msg = await m.reply_text("🔍 Searching details...")
-        result = mobile_lookup(number)
-        await msg.edit(result)
-    else:
-        await m.reply_text("⚠️ Sirf 10 digit ka valid number enter karein.")
+        await msg.edit(mobile_lookup(number))
+    else: await m.reply_text("⚠️ Sirf 10 digit ka valid number enter karein.")
 
-# --- IMPLEMENTED CW EXTRACTOR COMMANDS ---
-@app.on_message(filters.command("cw"))
+# --- CW BATCH EXTRACTOR HANDLER ---
+@app.on_message(filters.command("cw"), group=2)
 async def handle_cw_commands(c, m):
-    if not await is_user_joined(c, m.from_user.id):
-        await send_join_request(m)
-        return
-
     if len(m.command) < 2:
-        msg = (
-            "✨ **Welcome to Batch Extractor Bot Menu** ✨\n\n"
-            "⚡ **How to use**\n"
-            "1️⃣ `/cw fetch` - Database se saare batch fetch karein\n"
-            "2️⃣ `/cw [Batch_ID]` - Ek clean specialized `.txt` file pane ke liye (Example: `/cw 3368`)\n\n"
-            "📁 **Feature:** Bot automatic background me saare topics and video tokens decode karke ready karega!"
-        )
+        msg = "✨ **Batch Extractor System Menu** ✨\n\n⚡ **How to use**\n1️⃣ `/cw fetch` - Database se saare batch list nikalne ke liye.\n2️⃣ `/cw [Batch_ID]` - Direct batch details extract karne ke liye (Example: `/cw 3368`)"
         return await m.reply_text(msg)
-
+    
     sub_cmd = m.command[1].strip()
-
-    # /cw fetch logic
     if sub_cmd.lower() == "fetch":
         msg = await m.reply_text("⏳ Database fetching batch...")
         try:
@@ -766,40 +793,66 @@ async def handle_cw_commands(c, m):
                 batches_data = response.json()
                 txt_content = "=========================================\n         OFFICIAL BATCHES LIST            \n=========================================\n\n"
                 nested_data = batches_data.get('data') if isinstance(batches_data, dict) and 'data' in batches_data else batches_data
-                
                 if isinstance(nested_data, dict):
                     for index, (b_id, b_name) in enumerate(nested_data.items(), 1):
                         txt_content += f"{index}. BATCH NAME : {b_name}\n   BATCH ID   : {b_id}\n{'-'*40}\n"
-                
                 file_buffer = io.BytesIO(txt_content.encode('utf-8'))
                 file_buffer.name = "All_Available_Batches.txt"
                 await m.reply_document(file_buffer, caption="📋 Sabhi available batches ki list tayar hai.")
                 await msg.delete()
-            else:
-                await msg.edit(f"❌ Failed to fetch batches. Server Response: {response.status_code}")
-        except Exception as e:
-            await msg.edit(f"❌ Error: {str(e)}")
-
-    # /cw [batch_id] logic
+            else: await msg.edit(f"❌ Failed to fetch batches. Server Response: {response.status_code}")
+        except Exception as e: await msg.edit(f"❌ Error: {str(e)}")
     elif sub_cmd.isdigit():
         status_msg = await m.reply_text(f"🔍 Batch ID: {sub_cmd} checking...")
-        task_thread = threading.Thread(
-            target=process_batch_extraction_thread,
-            args=(m.chat.id, status_msg.id, sub_cmd)
-        )
-        task_thread.daemon = True
-        task_thread.start()
-    else:
-        await m.reply_text("⚠️ Galat format. Sahi use karein: `/cw fetch` ya `/cw [Batch_ID]`")
+        threading.Thread(target=process_batch_extraction_thread, args=(m.chat.id, status_msg.id, sub_cmd), daemon=True).start()
+    else: await m.reply_text("⚠️ Sahi format use karein: `/cw fetch` ya `/cw [Batch_ID]`")
 
-@app.on_message(filters.command(["start", "help", "html", "sky", "txt", "stop"]))
+# --- SELECTIONWAY EXTRACTOR HANDLER ---
+@app.on_message(filters.command("sway"), group=3)
+async def handle_sway_commands(c, m):
+    if len(m.command) < 2:
+        msg = "🎯 **SelectionWay Extractor Subsystem** 🎯\n\n⚡ **How to use**\n1️⃣ `/sway fetch` - SelectionWay active courses/batches ki dynamic list fetch karein.\n2️⃣ `/sway [Course_ID]` - Pura structural mapping tree database file download karne ke liye."
+        return await m.reply_text(msg)
+        
+    sub_cmd = m.command[1].strip()
+    if sub_cmd.lower() == "fetch":
+        msg = await m.reply_text("⏳ Fetching active batches from SelectionWay Server...")
+        try:
+            url = f"{SW_API_BASE}/courses/active?userId={SW_USER_ID}"
+            resp = session.get(url, headers=SW_HEADERS, timeout=30)
+            if resp.status_code == 200 and resp.json().get("state") == 200:
+                batches = resp.json().get("data", [])
+                if not batches: return await msg.edit("❌ Active courses terminal me empty returned.")
+                
+                txt_content = "=========================================================\n         SELECTIONWAY OFFICIAL ACTIVE BATCHES           \n=========================================================\n\n"
+                for idx, b in enumerate(batches, 1):
+                    txt_content += f"{idx}. BATCH: {b.get('title', 'Unknown')}\n   COURSE ID: {b.get('id', 'N/A')}\n   Faculty  : {b.get('facultyDetails', {}).get('name', 'Unknown')}\n---------------------------------------------------------\n"
+                
+                file_buffer = io.BytesIO(txt_content.encode('utf-8'))
+                file_buffer.name = "SelectionWay_Active_Batches.txt"
+                await m.reply_document(file_buffer, caption="📋 SelectionWay active batches ki list ready hai.")
+                await msg.delete()
+            else: await msg.edit("❌ Failed to resolve dynamic data matrix from structure.")
+        except Exception as e: await msg.edit(f"❌ Error logic execution failed: {str(e)}")
+        
+    elif len(m.command) >= 2:
+        # Match alphanumeric IDs (Hranker ecosystem hashes can be non-pure numeric strings)
+        course_id = m.command[1].strip()
+        batch_title = "Mapped_Batch_Output"
+        if len(m.command) > 2:
+            batch_title = " ".join(m.command[2:])
+            
+        status_msg = await m.reply_text(f"🔍 Initializing secure connection to mapping node ID: `{course_id}`...")
+        threading.Thread(target=process_sway_extraction_thread, args=(m.chat.id, status_msg.id, course_id, batch_title), daemon=True).start()
+
+# --- GENERAL UTILITIES COMMAND HANDLER ---
+@app.on_message(filters.command(["start", "help", "html", "sky", "txt", "stop"]), group=4)
 async def handle_cmds(c, m):
     cmd = m.command[0]
-    
     if cmd == "start":
-        await m.reply_text("👋 Welcome! Select a mode:\n/html\n/sky\n/txt\n\n🔍 Use `/num [number]` to lookup details.\n⚡ Use `/cw` to access Batch Extractor System.")
+        await m.reply_text("👋 Welcome! Select a mode:\n/html\n/sky\n/txt\n\n🔍 Use `/num [number]` to lookup details.\n⚡ Use `/cw` for CW Extractor.\n🎯 Use `/sway` for SelectionWay Subsystem.")
     elif cmd == "help":
-        await m.reply_text("💡 Help:\n/html - Standard\n/sky - Password\n/num - Number Lookup\n/cw - Batch Extractor Menu\n/stop - Reset")
+        await m.reply_text("💡 Help:\n/html - Standard\n/sky - Password\n/num - Number Lookup\n/cw - CW Extractor\n/sway - SelectionWay Menu\n/stop - Reset")
     elif cmd == "stop":
         user_mode.pop(m.from_user.id, None)
         await m.reply_text("🛑 Stopped.")
@@ -807,7 +860,8 @@ async def handle_cmds(c, m):
         user_mode[m.from_user.id] = cmd
         await m.reply_text(f"✅ Mode Set: {cmd.upper()}\n📄 Send file now!")
 
-@app.on_message(filters.document)
+# --- DOCUMENT PARSER HANDLER ---
+@app.on_message(filters.document, group=5)
 async def process_file(c, m):
     uid = m.from_user.id
     mode = user_mode.get(uid)
@@ -825,7 +879,6 @@ async def process_file(c, m):
         out_path = path.rsplit('.', 1)[0] + "_Final.html"
         with open(out_path, "w", encoding="utf-8") as f: f.write(html_data)
         cap = "✅ Dashboard Ready!"
-    
     elif mode == "txt":
         links = re.findall(r"(https?://[^\s\n]+)", content)
         out_path = path.rsplit('.', 1)[0] + "_links.txt"
@@ -837,25 +890,5 @@ async def process_file(c, m):
     if os.path.exists(path): os.remove(path)
     if os.path.exists(out_path): os.remove(out_path)
 
-# Callback Query Handler for Join Check
-@app.on_callback_query(filters.regex("check_join"))
-async def check_callback(c, cb):
-    if await is_user_joined(c, cb.from_user.id):
-        await cb.answer("✅ Access unlocked!", show_alert=False)
-        try:
-            await cb.message.delete()
-        except Exception:
-            pass
-        msg = (
-            "✨ **Welcome to Batch Extractor Bot Menu** ✨\n\n"
-            "⚡ **How to use**\n"
-            "1️⃣ `/cw fetch` - Database se saare batch fetch karein\n"
-            "2️⃣ `/cw [Batch_ID]` - Ek clean specialized `.txt` file pane ke liye\n\n"
-            "📁 **Feature:** Bot automatic background me saare topics and video tokens decode karke ready karega!"
-        )
-        await c.send_message(cb.message.chat.id, msg)
-    else:
-        await cb.answer("❌ plz join ", show_alert=True)
-
-print("🚀 Bot Started with Integrated Systems...")
+print("🚀 Bot running with Complete Subsystems Integration...")
 app.run()
