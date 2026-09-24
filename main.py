@@ -102,33 +102,43 @@ def generate_html(file_name, content, is_protected=False):
         name = name.strip()
         url = url.strip()
 
-        # --- S3 Amazon Link Interception ---
+        # --- Link Interceptions ---
         if "video-streaming-source.s3.ap-south-1.amazonaws.com" in url:
             url = f"https://sujaladda.netlify.app/stream.m3u8?url={url}"
-
-        # --- MPD URL Interception (ADDED) ---
-        elif "/master.mpd" in url:
+        elif "https://d1d34p8vz63oiq.cloudfront.net" in url:
             try:
                 vid_id = url.split("/")[-2]
                 url = f"https://pw-study-bison.space-z.ai/api/hls/{vid_id}/master.m3u8"
             except IndexError:
-                pass  # Fallback agar URL structure unexpected ho
+                pass
 
         low_u = url.lower()
-       
-      if any(x in low_u for x in [".m3u8", ".mpd", ".mp4", ".mkv"]): 
-            t = "VIDEO"; v_c += 1; icon = "🎥"
-        elif ".pdf" in low_u: 
-            t = "PDF"; p_c += 1; icon = "📄"
-        elif any(x in low_u for x in [".jpg", ".jpeg", ".png", ".webp"]): 
-            t = "IMAGE"; i_c += 1; icon = "🖼️"
-        elif any(x in low_u for x in [".m4a", ".mp3", ".wav"]): 
-            t = "AUDIO"; a_c += 1; icon = "🎧"
-        else: 
-            t = "OTHER"; icon = "📂"
+
+        # --- Type Checking ---
+        if any(x in low_u for x in [".m3u8", ".mpd", ".mp4", ".mkv"]):
+            t = "VIDEO"
+            v_c += 1
+            icon = "🎥"
+        elif ".pdf" in low_u:
+            t = "PDF"
+            p_c += 1
+            icon = "📄"
+        elif any(x in low_u for x in [".jpg", ".jpeg", ".png", ".webp"]):
+            t = "IMAGE"
+            i_c += 1
+            icon = "🖼️"
+        elif any(x in low_u for x in [".m4a", ".mp3", ".wav"]):
+            t = "AUDIO"
+            a_c += 1
+            icon = "🎧"
+        else:
+            t = "OTHER"
+            icon = "📂"
 
         poster = random.choice(posters)
-        playlist_data.append({"url": url, "name": name, "type": t, "poster": poster})
+        playlist_data.append(
+            {"url": url, "name": name, "type": t, "poster": poster}
+        )
 
         items_html += f'''
         <div class="list-item" id="item-{idx}" data-type="{t}" onclick="openCinema({idx})">
