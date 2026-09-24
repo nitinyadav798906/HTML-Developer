@@ -101,10 +101,20 @@ def generate_html(file_name, content, is_protected=False):
     for idx, (name, url) in enumerate(raw_lines):
         name = name.strip()
         url = url.strip()
-        low_u = url.lower()
-       # --- S3 Amazon Link Interception ---
+
+        # --- S3 Amazon Link Interception ---
         if "video-streaming-source.s3.ap-south-1.amazonaws.com" in url:
             url = f"https://sujaladda.netlify.app/stream.m3u8?url={url}"
+
+        # --- MPD URL Interception (ADDED) ---
+        elif "/master.mpd" in url:
+            try:
+                vid_id = url.split("/")[-2]
+                url = f"https://pw-study-bison.space-z.ai/api/hls/{vid_id}/master.m3u8"
+            except IndexError:
+                pass  # Fallback agar URL structure unexpected ho
+
+        low_u = url.lower()
        
       if any(x in low_u for x in [".m3u8", ".mpd", ".mp4", ".mkv"]): 
             t = "VIDEO"; v_c += 1; icon = "🎥"
