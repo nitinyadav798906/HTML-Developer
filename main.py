@@ -107,9 +107,11 @@ def generate_html(file_name, content, is_protected=False):
             url = f"https://sujaladda.netlify.app/stream.m3u8?url={url}"
 
         elif "/master.mpd" in url:
-            vid_id = url.split("/")[-2]
-            new_url = f"https://pw-study-bison.space-z.ai/api/hls/{vid_id}/master.m3u8"
-            videos.append((name, new_url))
+    # rstrip('/') lagane se agar end mein Extra '/' ho toh vo hat jayega
+    clean_url = url.rstrip('/')
+    vid_id = clean_url.split("/")[-2]
+    new_url = f"https://pw-study-bison.space-z.ai/api/hls/{vid_id}/master.m3u8"
+    videos.append((name, new_url))
             
         if any(x in low_u for x in [".m3u8", ".mpd", ".mp4", ".mkv"]): 
             t = "VIDEO"; v_c += 1; icon = "🎥"
